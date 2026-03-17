@@ -22,11 +22,5 @@ COPY dominion/package.json dominion/pnpm-lock.yaml* ./
 # Note: If you have a workspace, you might need to adjust this
 RUN pnpm install
 
-# Copy the rest of the application
-COPY dominion/ .
-
 # Expose the Vite port
 EXPOSE 5173
-
-# Run the development server
-CMD ["pnpm", "dev"]

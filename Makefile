@@ -38,3 +38,10 @@ rebuild: clean build
 
 logs:
 	podman logs -f $(CONTAINER_NAME)
+
+compose-up:
+	podman compose up
+
+compose-down:
+	podman compose down
+

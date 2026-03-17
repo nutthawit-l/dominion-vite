@@ -1,0 +1,11 @@
+services:
+  dominion:
+    build: .
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./dominion:/app:z
+    user: root
+    environment:
+      - HOST=0.0.0.0
+    command: pnpm dev
