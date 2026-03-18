@@ -1,6 +1,29 @@
 import { useState } from 'react'
 import copperImg from './assets/Copper.jpg'
+import artisanImg from './assets/kingdoms/Artisan.jpg'
+import banditImg from './assets/kingdoms/Bandit.jpg'
+import cellarImg from './assets/kingdoms/Cellar.jpg'
+import chapelImg from './assets/kingdoms/Chapel.jpg'
+import gardensImg from './assets/kingdoms/Gardens.jpg'
+import laboratoryImg from './assets/kingdoms/Laboratory.jpg'
+import remodelImg from './assets/kingdoms/Remodel.jpg'
+import sentryImg from './assets/kingdoms/Sentry.jpg'
+import vassalImg from './assets/kingdoms/Vassal.jpg'
+import workshopImg from './assets/kingdoms/Workshop.jpg'
 import './App.css'
+
+const KINGDOM_CARDS = [
+  { name: 'Artisan', cost: 6, type: 'Action', count: 10, img: artisanImg },
+  { name: 'Bandit', cost: 5, type: 'Action-Attack', count: 10, img: banditImg },
+  { name: 'Cellar', cost: 2, type: 'Action', count: 10, img: cellarImg },
+  { name: 'Chapel', cost: 2, type: 'Action', count: 10, img: chapelImg },
+  { name: 'Gardens', cost: 4, type: 'Victory', count: 10, img: gardensImg },
+  { name: 'Laboratory', cost: 5, type: 'Action', count: 10, img: laboratoryImg },
+  { name: 'Remodel', cost: 4, type: 'Action', count: 10, img: remodelImg },
+  { name: 'Sentry', cost: 5, type: 'Action', count: 10, img: sentryImg },
+  { name: 'Vassal', cost: 3, type: 'Action', count: 10, img: vassalImg },
+  { name: 'Workshop', cost: 3, type: 'Action', count: 10, img: workshopImg },
+];
 
 function App() {
   const [hand, setHand] = useState([
@@ -25,7 +48,7 @@ function App() {
     setIsOver(false);
     const cardId = e.dataTransfer.getData("cardId");
     const cardIndex = hand.findIndex(c => c.id === cardId);
-    
+
     if (cardIndex !== -1) {
       const card = hand[cardIndex];
       setHand(hand.filter(c => c.id !== cardId));
@@ -47,11 +70,22 @@ function App() {
     <div className="min-h-screen bg-stone-100 p-4 grid place-items-center">
       <div className="grid border-4 border-black w-full max-w-7xl aspect-4/3 grid-cols-[repeat(32,1fr)] grid-rows-[repeat(24,1fr)] shadow-2xl overflow-hidden bg-stone-900 text-[10px] font-bold uppercase tracking-tighter">
         {/* Board */}
-        <div className="[grid-area:3/1/13/7] bg-yellow-400 border border-black/20 flex items-center justify-center text-black font-black">Gold/Province</div>
-        <div className="[grid-area:3/7/13/33] bg-gray-400 border border-black/20 flex items-center justify-center text-black font-black">Kingdoms</div>
+        <div className="[grid-area:3/1/13/7] bg-yellow-400 border border-black/20 flex flex-col items-center justify-center text-black font-black p-2 gap-4">
+          <div className="text-sm">Gold/Province</div>
+          <div className="w-12 h-16 bg-yellow-600 rounded-sm shadow-xl flex items-center justify-center text-white border border-black/40">G</div>
+          <div className="w-12 h-16 bg-blue-600 rounded-sm shadow-xl flex items-center justify-center text-white border border-black/40">P</div>
+        </div>
+
+        {/* Kingdom Area */}
+        <div className="[grid-area:3/7/13/25] bg-stone-800/50 border border-black/20 grid grid-cols-5 grid-rows-2 gap-2 p-3">
+          {KINGDOM_CARDS.map((card) => (
+            <KingdomCard key={card.name} {...card} />
+          ))}
+        </div>
+
         <div className="[grid-area:1/25/13/33] bg-fuchsia-400 border-l border-b border-black/20 flex items-center justify-center text-white z-10 font-black">Game Logs</div>
-        
-        <div 
+
+        <div
           className={`[grid-area:13/1/18/33] border-y border-black/20 flex flex-wrap items-center justify-center p-4 gap-2 text-white transition-all duration-200 ${isOver ? 'bg-emerald-500 scale-[1.01] z-20 shadow-inner' : 'bg-emerald-600'}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -80,7 +114,6 @@ function App() {
         {/* Player */}
         <div className="[grid-area:23/1/25/3] bg-blue-400 flex items-center justify-center text-white">Deck</div>
         <div className="[grid-area:18/6/25/28] bg-blue-700/5 flex items-end justify-center relative overflow-visible group/hand">
-          <span className="absolute top-2 left-1/2 -translate-x-1/2 opacity-30 text-white pointer-events-none">Player Hand</span>
           <div className="flex justify-center items-end relative w-full h-50 -mb-5">
             {hand.map((card, i) => {
               const total = hand.length;
@@ -126,6 +159,40 @@ function App() {
   )
 }
 
+function KingdomCard({ name, cost, count, type, img }: { name: string, cost: number, count: number, type: string, img: string }) {
+  const isAttack = type.includes('Attack');
+  return (
+    <div className="relative group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95">
+      <div className="w-full h-full rounded-sm overflow-hidden border border-white/10 shadow-lg bg-stone-900 flex flex-col">
+        {/* Card Image Area (Cropped) */}
+        <div className="relative flex-1 overflow-hidden">
+          <img src={img} alt={name} className="w-full h-full object-cover object-top scale-110 group-hover:scale-100 transition-transform duration-500" />
+
+          {/* Information Overlay */}
+          <div className="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-black/90 via-black/40 to-transparent flex items-end justify-between px-1.5 pb-1">
+            {/* Cost Circle */}
+            <div className="w-8 h-8 rounded-full bg-yellow-400 border border-yellow-600 flex items-center justify-center text-black text-[16px] font-black shadow-[0_0_10px_rgba(251,191,36,0.5)]">
+              {cost}
+            </div>
+
+            {/* Attack Symbol */}
+            {isAttack && (
+              <div className="mb-0.5 animate-pulse">
+                <span className="text-red-500 text-xs filter drop-shadow-[0_0_2px_rgba(0,0,0,1)]">⚔️</span>
+              </div>
+            )}
+
+            {/* Count */}
+            <div className="text-white text-[16px] font-black tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,1)] bg-black/50 px-1 rounded-sm border border-white/10">
+              {count}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Card({ className = "" }: { className?: string }) {
   return (
     <div className={`w-[clamp(80px,15vw,160px)] aspect-5/8 rounded-[4%] overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out bg-[#333] cursor-pointer border border-white/10 ${className}`}>
@@ -135,3 +202,4 @@ function Card({ className = "" }: { className?: string }) {
 }
 
 export default App
+
