@@ -1,13 +1,6 @@
 @import "tailwindcss";
 
-.main {
-  display: grid;
-  border: 2px solid black;
-  grid-template-columns: repeat(32, 40px);
-  grid-template-rows: repeat(24, 40px);
-  width: 1280px;
-  margin: 0 auto;
-}
+
 
 /*-------------------------------------------------------------------------*/
 /* MAIN SECTIONS */
@@ -156,9 +149,9 @@
 /**************/
 
 .dominion-card {
-  width: 160px;
-  height: 260px;
-  border-radius: 1px;
+  width: clamp(80px, 15vw, 160px);
+  aspect-ratio: 5/8;
+  border-radius: 4%;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   transition: transform 0.2s ease, box-shadow 0.2s ease;

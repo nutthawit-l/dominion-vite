@@ -3,8 +3,8 @@ import './App.css'
 
 function App() {
   return (
-    <>
-      <div className="main">
+    <div className="min-h-screen bg-stone-100 p-4 grid place-items-center">
+      <div className="grid border-2 border-black w-full max-w-7xl aspect-[4/3] grid-cols-[repeat(32,1fr)] grid-rows-[repeat(24,1fr)] shadow-2xl overflow-hidden bg-stone-900">
         {/* Board */}
         <div className="gold-province"></div>
         <div className="kingdoms"></div>
@@ -44,7 +44,7 @@ function App() {
         <div className="end-buys"></div>
         <div className="play-treasures"></div>
       </div>
-    </>
+    </div>
   )
 }
 
