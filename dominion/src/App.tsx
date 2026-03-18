@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import copperImg from './assets/Copper.jpg'
 import artisanImg from './assets/kingdoms/Artisan.jpg'
 import banditImg from './assets/kingdoms/Bandit.jpg'
 import cellarImg from './assets/kingdoms/Cellar.jpg'
@@ -10,6 +9,15 @@ import remodelImg from './assets/kingdoms/Remodel.jpg'
 import sentryImg from './assets/kingdoms/Sentry.jpg'
 import vassalImg from './assets/kingdoms/Vassal.jpg'
 import workshopImg from './assets/kingdoms/Workshop.jpg'
+
+import copperImg from './assets/basics/Copper.jpg'
+import silverImg from './assets/basics/Silver.jpg'
+import goldImg from './assets/basics/Gold.jpg'
+import estateImg from './assets/basics/Estate.jpg'
+import duchyImg from './assets/basics/Duchy.jpg'
+import provinceImg from './assets/basics/Province.jpg'
+import curseImg from './assets/basics/Curse.jpg'
+
 import './App.css'
 
 const KINGDOM_CARDS = [
@@ -23,6 +31,16 @@ const KINGDOM_CARDS = [
   { name: 'Sentry', cost: 5, type: 'Action', count: 10, img: sentryImg },
   { name: 'Vassal', cost: 3, type: 'Action', count: 10, img: vassalImg },
   { name: 'Workshop', cost: 3, type: 'Action', count: 10, img: workshopImg },
+];
+
+const BASIC_CARDS = [
+  { name: 'Province', cost: 8, count: 8, img: provinceImg, type: 'Victory' },
+  { name: 'Gold', cost: 6, count: 20, img: goldImg, type: 'Treasure' },
+  { name: 'Duchy', cost: 5, count: 8, img: duchyImg, type: 'Victory' },
+  { name: 'Silver', cost: 3, count: 30, img: silverImg, type: 'Treasure' },
+  { name: 'Estate', cost: 2, count: 12, img: estateImg, type: 'Victory' },
+  { name: 'Copper', cost: 0, count: 40, img: copperImg, type: 'Treasure' },
+  { name: 'Curse', cost: 0, count: 10, img: curseImg, type: 'Curse' },
 ];
 
 function App() {
@@ -70,10 +88,10 @@ function App() {
     <div className="min-h-screen bg-stone-100 p-4 grid place-items-center">
       <div className="grid border-4 border-black w-full max-w-7xl aspect-4/3 grid-cols-[repeat(32,1fr)] grid-rows-[repeat(24,1fr)] shadow-2xl overflow-hidden bg-stone-900 text-[10px] font-bold uppercase tracking-tighter">
         {/* Board */}
-        <div className="[grid-area:3/1/13/7] bg-yellow-400 border border-black/20 flex flex-col items-center justify-center text-black font-black p-2 gap-4">
-          <div className="text-sm">Gold/Province</div>
-          <div className="w-12 h-16 bg-yellow-600 rounded-sm shadow-xl flex items-center justify-center text-white border border-black/40">G</div>
-          <div className="w-12 h-16 bg-blue-600 rounded-sm shadow-xl flex items-center justify-center text-white border border-black/40">P</div>
+        <div className="[grid-area:3/1/13/7] bg-stone-800/80 border border-black/20 grid grid-cols-2 grid-rows-4 gap-1 p-1">
+          {BASIC_CARDS.map((card) => (
+            <KingdomCard key={card.name} {...card} />
+          ))}
         </div>
 
         {/* Kingdom Area */}
