@@ -1,78 +1,43 @@
 import { useState } from 'react'
-import artisanImg from './assets/kingdoms/Artisan.jpg'
-import banditImg from './assets/kingdoms/Bandit.jpg'
-import cellarImg from './assets/kingdoms/Cellar.jpg'
-import chapelImg from './assets/kingdoms/Chapel.jpg'
-import gardensImg from './assets/kingdoms/Gardens.jpg'
-import laboratoryImg from './assets/kingdoms/Laboratory.jpg'
-import remodelImg from './assets/kingdoms/Remodel.jpg'
-import sentryImg from './assets/kingdoms/Sentry.jpg'
-import vassalImg from './assets/kingdoms/Vassal.jpg'
-import workshopImg from './assets/kingdoms/Workshop.jpg'
-
-import copperImg from './assets/basics/Copper.jpg'
-import silverImg from './assets/basics/Silver.jpg'
-import goldImg from './assets/basics/Gold.jpg'
-import estateImg from './assets/basics/Estate.jpg'
-import duchyImg from './assets/basics/Duchy.jpg'
-import provinceImg from './assets/basics/Province.jpg'
-import curseImg from './assets/basics/Curse.jpg'
-
 import './App.css'
-
-const KINGDOM_CARDS = [
-  { name: 'Artisan', cost: 6, type: 'Action', count: 10, img: artisanImg },
-  { name: 'Bandit', cost: 5, type: 'Action-Attack', count: 10, img: banditImg },
-  { name: 'Cellar', cost: 2, type: 'Action', count: 10, img: cellarImg },
-  { name: 'Chapel', cost: 2, type: 'Action', count: 10, img: chapelImg },
-  { name: 'Gardens', cost: 4, type: 'Victory', count: 10, img: gardensImg },
-  { name: 'Laboratory', cost: 5, type: 'Action', count: 10, img: laboratoryImg },
-  { name: 'Remodel', cost: 4, type: 'Action', count: 10, img: remodelImg },
-  { name: 'Sentry', cost: 5, type: 'Action', count: 10, img: sentryImg },
-  { name: 'Vassal', cost: 3, type: 'Action', count: 10, img: vassalImg },
-  { name: 'Workshop', cost: 3, type: 'Action', count: 10, img: workshopImg },
-];
-
-const BASIC_CARDS = [
-  { name: 'Province', cost: 8, count: 8, img: provinceImg, type: 'Victory' },
-  { name: 'Gold', cost: 6, count: 20, img: goldImg, type: 'Treasure' },
-  { name: 'Duchy', cost: 5, count: 8, img: duchyImg, type: 'Victory' },
-  { name: 'Silver', cost: 3, count: 30, img: silverImg, type: 'Treasure' },
-  { name: 'Estate', cost: 2, count: 12, img: estateImg, type: 'Victory' },
-  { name: 'Copper', cost: 0, count: 40, img: copperImg, type: 'Treasure' },
-  { name: 'Curse', cost: 0, count: 10, img: curseImg, type: 'Curse' },
-];
+import { KINGDOM_CARDS, BASIC_CARDS } from './lib/Card'
+import type { Card } from './lib/Card'
 
 function App() {
-  const [hand, setHand] = useState([
-    { id: '1', name: 'Copper' },
-    { id: '2', name: 'Copper' },
-    { id: '3', name: 'Copper' },
-    { id: '4', name: 'Copper' },
-    { id: '5', name: 'Copper' },
-    { id: '6', name: 'Copper' },
-    { id: '7', name: 'Copper' },
+  const [hand, setHand] = useState<(Card & { id: string })[]>([
+    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '1' },
+    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '2' },
+    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '3' },
+    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '4' },
+    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '5' },
+    { ...BASIC_CARDS.find(c => c.name === 'Estate')!, id: '6' },
+    { ...BASIC_CARDS.find(c => c.name === 'Estate')!, id: '7' },
   ]);
-  const [played, setPlayed] = useState<{ id: string, name: string }[]>([]);
+  const [played, setPlayed] = useState<(Card & { id: string })[]>([]);
   const [isOver, setIsOver] = useState(false);
 
   const handleDragStart = (e: React.DragEvent, cardId: string) => {
-    e.dataTransfer.setData("cardId", cardId);
+    e.dataTransfer.setData("text", cardId);
     e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsOver(false);
-    const cardId = e.dataTransfer.getData("cardId");
-    const cardIndex = hand.findIndex(c => c.id === cardId);
+    const cardId = e.dataTransfer.getData("text");
 
-    if (cardIndex !== -1) {
-      const card = hand[cardIndex];
-      setHand(hand.filter(c => c.id !== cardId));
-      setPlayed([...played, card]);
-    }
+    if (!cardId) return;
+
+    setHand(prevHand => {
+      const card = prevHand.find(c => c.id === cardId);
+      if (card) {
+        setPlayed(prevPlayed => [...prevPlayed, card]);
+        return prevHand.filter(c => c.id !== cardId);
+      }
+      return prevHand;
+    });
   };
+
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -87,20 +52,22 @@ function App() {
   return (
     <div className="min-h-screen bg-stone-100 p-4 grid place-items-center">
       <div className="grid border-4 border-black w-full max-w-7xl aspect-4/3 grid-cols-[repeat(32,1fr)] grid-rows-[repeat(24,1fr)] shadow-2xl overflow-hidden bg-stone-900 text-[10px] font-bold uppercase tracking-tighter">
-        {/* Board */}
+
+        {/* Basic Cards area */}
         <div className="[grid-area:3/1/13/7] bg-stone-800/80 border border-black/20 grid grid-cols-2 grid-rows-4 gap-1 p-1">
           {BASIC_CARDS.map((card) => (
-            <KingdomCard key={card.name} {...card} />
+            <PlaceCard key={card.name} {...card} />
           ))}
         </div>
 
-        {/* Kingdom Area */}
+        {/* Kingdom Cards area */}
         <div className="[grid-area:3/7/13/25] bg-stone-800/50 border border-black/20 grid grid-cols-5 grid-rows-2 gap-2 p-3">
           {KINGDOM_CARDS.map((card) => (
-            <KingdomCard key={card.name} {...card} />
+            <PlaceCard key={card.name} {...card} />
           ))}
         </div>
 
+        {/* Playground area */}
         <div className="[grid-area:1/25/13/33] bg-fuchsia-400 border-l border-b border-black/20 flex items-center justify-center text-white z-10 font-black">Game Logs</div>
 
         <div
@@ -114,11 +81,14 @@ function App() {
               {isOver ? "Drop to Play" : "Playground Area"}
             </span>
           ) : (
-            <div className="flex -space-x-12 hover:-space-x-8 transition-all duration-300">
+            <div className="flex flex-wrap justify-center gap-4">
               {played.map((card) => (
-                <Card key={card.id} className="scale-75 hover:scale-100 hover:z-50 hover:-translate-y-4 shadow-xl pointer-events-none" />
+                <div key={card.id} className="w-28 h-40">
+                  <DisplayCard {...card} />
+                </div>
               ))}
             </div>
+
           )}
         </div>
 
@@ -153,7 +123,8 @@ function App() {
                 >
                   <div className="transition-all duration-300 ease-out hover:-translate-y-24 hover:scale-125 hover:rotate-0 hover:z-100 group-hover/hand:[--spread:calc(var(--index)*15px)] active:opacity-40"
                     style={{ transform: `rotate(${index * 6}deg)` }}>
-                    <Card />
+                    <DisplayCard img={card.img} name={card.name} />
+
                   </div>
                 </div>
               );
@@ -177,8 +148,9 @@ function App() {
   )
 }
 
-function KingdomCard({ name, cost, count, type, img }: { name: string, cost: number, count: number, type: string, img: string }) {
-  const isAttack = type.includes('Attack');
+function PlaceCard({ name, cost, count, type, img }: { name: string, cost: number, count: number, type: string, img: string }) {
+  const isAttack = type.toUpperCase().includes('ATTACK');
+
   return (
     <div className="relative group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95">
       <div className="w-full h-full rounded-sm overflow-hidden border border-white/10 shadow-lg bg-stone-900 flex flex-col">
@@ -211,13 +183,15 @@ function KingdomCard({ name, cost, count, type, img }: { name: string, cost: num
   )
 }
 
-function Card({ className = "" }: { className?: string }) {
+function DisplayCard({ className = "", img, name }: { className?: string, img?: string, name?: string }) {
   return (
     <div className={`w-[clamp(80px,15vw,160px)] aspect-5/8 rounded-[4%] overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out bg-[#333] cursor-pointer border border-white/10 ${className}`}>
-      <img src={copperImg} alt="Copper Card" className="w-full h-full object-cover block" />
+      <img src={img || BASIC_CARDS.find(c => c.name === 'Copper')?.img} alt={name || "Card"} className="w-full h-full object-cover block" />
     </div>
   )
 }
+
+
 
 export default App
 
