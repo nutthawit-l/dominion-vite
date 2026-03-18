@@ -20,16 +20,32 @@ function App() {
 
         {/* Player */}
         <div className="[grid-area:23/1/25/3] bg-blue-400 flex items-center justify-center text-white">Deck</div>
-        <div className="[grid-area:18/6/25/28] bg-blue-700/30 flex items-end justify-center relative overflow-visible">
-          <span className="absolute top-2 left-1/2 -translate-x-1/2 opacity-50 text-white">Player Hand</span>
-          <div className="card-fan-container">
-            <div className="card-fan-item"><Card /></div>
-            <div className="card-fan-item"><Card /></div>
-            <div className="card-fan-item"><Card /></div>
-            <div className="card-fan-item"><Card /></div>
-            <div className="card-fan-item"><Card /></div>
-            <div className="card-fan-item"><Card /></div>
-            <div className="card-fan-item"><Card /></div>
+        <div className="[grid-area:18/6/25/28] bg-blue-700/5 flex items-end justify-center relative overflow-visible group/hand">
+          <span className="absolute top-2 left-1/2 -translate-x-1/2 opacity-30 text-white pointer-events-none">Player Hand</span>
+          <div className="flex justify-center items-end relative w-full h-[200px] mb-[-20px]">
+            {Array.from({ length: 7 }).map((_, i) => {
+              const total = 7;
+              const index = i - (total - 1) / 2;
+              return (
+                <div
+                  key={i}
+                  className="absolute bottom-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform group/card"
+                  style={{
+                    transform: `translateX(calc(${index * 42}px + var(--spread, 0px))) translateY(${Math.abs(index) * 6}px)`,
+                    zIndex: 10 + i,
+                    // @ts-ignore
+                    '--index': index,
+                    // @ts-ignore
+                    '--spread': '0px'
+                  }}
+                >
+                  <div className="transition-all duration-300 ease-out hover:-translate-y-24 hover:scale-125 hover:rotate-0 hover:z-[100] group-hover/hand:[--spread:calc(var(--index)*15px)]"
+                    style={{ transform: `rotate(${index * 6}deg)` }}>
+                    <Card />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="[grid-area:23/29/25/31] bg-gray-200 flex items-center justify-center text-black">Discard</div>
@@ -49,10 +65,10 @@ function App() {
   )
 }
 
-function Card() {
+function Card({ className = "" }: { className?: string }) {
   return (
-    <div className="dominion-card">
-      <img src={copperImg} alt="Copper Card" />
+    <div className={`w-[clamp(80px,15vw,160px)] aspect-[5/8] rounded-[4%] overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out bg-[#333] cursor-pointer border border-white/10 ${className}`}>
+      <img src={copperImg} alt="Copper Card" className="w-full h-full object-cover block" />
     </div>
   )
 }
