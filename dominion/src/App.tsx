@@ -26,7 +26,17 @@ function App() {
         
         {/* Player */}
         <div className="deck"></div>
-        <div className="hand"></div>
+        <div className="hand">
+          <div className="card-fan-container">
+            <div className="card-fan-item"><Card /></div>
+            <div className="card-fan-item"><Card /></div>
+            <div className="card-fan-item"><Card /></div>
+            <div className="card-fan-item"><Card /></div>
+            <div className="card-fan-item"><Card /></div>
+            <div className="card-fan-item"><Card /></div>
+            <div className="card-fan-item"><Card /></div>
+          </div>
+        </div>
         <div className="discard-pile"></div>
         <div className="trash"></div>
         <div className="player-profile"></div>
@@ -42,6 +52,19 @@ function App() {
       </div>
     </>
   )
+}
+
+function Card() {
+  return (
+    <>
+      <div>
+        <div className="card-header"></div>
+        <img />
+        <div className="card-body"></div>
+        <div className="card-footer"></div>
+      </div>
+    </>
+  ) 
 }
 
 export default App

@@ -7,6 +7,10 @@
   margin: 0 auto;
 }
 
+/*-------------------------------------------------------------------------*/
+/* MAIN SECTIONS */
+/****************/
+
 /* Board */
 
 .gold-province {
@@ -119,3 +123,32 @@
   background: rebeccapurple;
   grid-area: 19 / 29 / 21 / 33;
 }
+
+/*-------------------------------------------------------------------------*/
+/* PLAYER HAND */
+/**************/
+
+.card-fan-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 200px;
+  position: relative;
+  width: 100%;
+}
+
+.card-fan-item {
+  position: absolute;
+  bottom: 0;
+  transform-origin: bottom center;
+  transition: all 0.3s ease;
+}
+
+.card-fan-item:hover {
+  z-index: 50 !important;
+  transform: translateY(-40px) scale(1.1) rotate(0deg) !important;
+}
+
+/*-------------------------------------------------------------------------*/
+/* HAND CARD */
+/**************/
