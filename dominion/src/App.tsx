@@ -15,6 +15,7 @@ function App() {
   ]);
   const [played, setPlayed] = useState<(Card & { id: string })[]>([]);
   const [isOver, setIsOver] = useState(false);
+  const [showKingdomModal, setShowKingdomModal] = useState(false);
 
   const handleDragStart = (e: React.DragEvent, cardId: string) => {
     e.dataTransfer.setData("text", cardId);
@@ -147,11 +148,47 @@ function App() {
 
         {/* Buttons */}
         <div className="[grid-area:1/1/3/3] bg-pink-300 flex items-center justify-center text-black cursor-pointer hover:bg-pink-400 font-black">Menu</div>
-        <div className="[grid-area:1/3/3/5] bg-purple-600 flex items-center justify-center text-white cursor-pointer hover:bg-purple-700 font-black">Zoom</div>
+        <div 
+          className="[grid-area:1/3/3/5] bg-purple-600 flex items-center justify-center text-white cursor-pointer hover:bg-purple-700 font-black"
+          onClick={() => setShowKingdomModal(true)}
+        >
+          Zoom
+        </div>
         <div className="[grid-area:23/3/25/5] bg-violet-600 flex items-center justify-center text-white cursor-pointer hover:bg-violet-700 font-black">Undo</div>
         <div className="[grid-area:21/29/23/33] bg-olive-700 flex items-center justify-center text-white cursor-pointer hover:bg-olive-800 font-black">End Buys</div>
         <div className="[grid-area:19/29/21/33] bg-violet-900 flex items-center justify-center text-white cursor-pointer hover:bg-[rebeccapurple] font-black">Play Treasures</div>
       </div>
+
+      {/* Kingdom Zoom Modal */}
+      {showKingdomModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-black/90 backdrop-blur-sm transition-all duration-300">
+          <div className="relative w-full max-w-6xl p-10 bg-stone-950 border-4 border-purple-600/50 rounded-xl shadow-[0_0_50px_rgba(147,51,234,0.3)] animate-in zoom-in duration-300 overflow-y-auto max-h-[90vh]">
+            <button 
+              onClick={() => setShowKingdomModal(false)}
+              className="absolute top-6 right-6 text-white/50 text-4xl hover:text-white transition-all hover:rotate-90"
+            >
+              ✕
+            </button>
+            <h2 className="text-4xl text-purple-400 font-black uppercase tracking-[0.2em] text-center mb-12 drop-shadow-[0_0_10px_rgba(147,51,234,0.5)]">
+              Kingdom Expansion
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-x-12 gap-y-16 justify-items-center">
+              {KINGDOM_CARDS.map(card => (
+                <div key={card.name} className="flex flex-col items-center group/modal-card scale-110 hover:scale-125 transition-all">
+                   <DisplayCard {...card} className="w-48 shadow-2xl border-white/20" />
+                   <div className="mt-4 flex flex-col items-center">
+                      <span className="text-white text-lg font-black tracking-widest">{card.name}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center text-black text-xs font-black">{card.cost}</span>
+                        <span className="text-white/40 text-[10px] font-bold uppercase">{card.type.replace('_', ' ')}</span>
+                      </div>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
