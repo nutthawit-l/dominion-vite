@@ -21,21 +21,23 @@ function App() {
     e.dataTransfer.effectAllowed = "move";
   };
 
+  // Handles moving a card from the hand to the playground by its ID.
+  const playCard = (cardId: string) => {
+    const cardToPlay = hand.find(c => c.id === cardId);
+    if (cardToPlay) {
+      setHand(prevHand => prevHand.filter(c => c.id !== cardId));
+      setPlayed(prevPlayed => [...prevPlayed, cardToPlay]);
+    }
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsOver(false);
     const cardId = e.dataTransfer.getData("text");
 
-    if (!cardId) return;
-
-    setHand(prevHand => {
-      const card = prevHand.find(c => c.id === cardId);
-      if (card) {
-        setPlayed(prevPlayed => [...prevPlayed, card]);
-        return prevHand.filter(c => c.id !== cardId);
-      }
-      return prevHand;
-    });
+    if (cardId) {
+      playCard(cardId);
+    }
   };
 
 
@@ -81,14 +83,19 @@ function App() {
               {isOver ? "Drop to Play" : "Playground Area"}
             </span>
           ) : (
-            <div className="flex flex-wrap justify-center gap-4">
-              {played.map((card) => (
-                <div key={card.id} className="w-28 h-40">
-                  <DisplayCard {...card} />
-                </div>
+            <div className="flex justify-center items-center gap-4 h-full py-2 overflow-x-auto">
+              {played.reduce((acc, card) => {
+                const existing = acc.find(p => p.name === card.name);
+                if (existing) {
+                  existing.quantity = (existing.quantity || 0) + 1;
+                } else {
+                  acc.push({ ...card, quantity: 1 });
+                }
+                return acc;
+              }, [] as (Card & { id: string, quantity: number })[]).map((card) => (
+                <DisplayCard key={card.name} {...card} count={card.quantity} className="h-full shadow-lg" />
               ))}
             </div>
-
           )}
         </div>
 
@@ -121,10 +128,11 @@ function App() {
                   draggable="true"
                   onDragStart={(e) => handleDragStart(e, card.id)}
                 >
-                  <div className="transition-all duration-300 ease-out hover:-translate-y-24 hover:scale-125 hover:rotate-0 hover:z-100 group-hover/hand:[--spread:calc(var(--index)*15px)] active:opacity-40"
-                    style={{ transform: `rotate(${index * 6}deg)` }}>
+                  <div className="transition-all duration-300 ease-out hover:-translate-y-24 hover:scale-125 hover:rotate-0 hover:z-100 group-hover/hand:[--spread:calc(var(--index)*15px)] active:opacity-40 cursor-pointer"
+                    style={{ transform: `rotate(${index * 6}deg)` }}
+                    onClick={() => playCard(card.id)}
+                  >
                     <DisplayCard img={card.img} name={card.name} />
-
                   </div>
                 </div>
               );
@@ -183,10 +191,17 @@ function PlaceCard({ name, cost, count, type, img }: { name: string, cost: numbe
   )
 }
 
-function DisplayCard({ className = "", img, name }: { className?: string, img?: string, name?: string }) {
+// Added a count property that displays a bright yellow badge at the bottom-right corner when more than one card of the same type is played.
+function DisplayCard({ className, img, name, count }: { className?: string, img?: string, name?: string, count?: number }) {
+  const sizeClass = className || 'w-[clamp(80px,15vw,160px)]';
   return (
-    <div className={`w-[clamp(80px,15vw,160px)] aspect-5/8 rounded-[4%] overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out bg-[#333] cursor-pointer border border-white/10 ${className}`}>
+    <div className={`aspect-5/8 rounded-[4%] overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out bg-[#333] cursor-pointer border border-white/10 relative group ${sizeClass}`}>
       <img src={img || BASIC_CARDS.find(c => c.name === 'Copper')?.img} alt={name || "Card"} className="w-full h-full object-cover block" />
+      {count && count > 1 && (
+        <div className="absolute bottom-1 right-1 bg-yellow-400 text-black text-[12px] font-black px-1.5 py-0.5 rounded-full border border-black shadow-md z-10">
+          x{count}
+        </div>
+      )}
     </div>
   )
 }
