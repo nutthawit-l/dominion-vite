@@ -1,0 +1,1 @@
+Alway write easy code
