@@ -16,7 +16,7 @@ RUN npm install -g pnpm@latest-10
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY dominion/package.json dominion/pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* ./
 
 # Install dependencies
 # Note: If you have a workspace, you might need to adjust this

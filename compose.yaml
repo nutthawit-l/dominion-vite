@@ -1,6 +1,8 @@
 services:
   dominion:
-    build: .
+    build: 
+      context: ./dominion
+      dockerfile: Containerfile
     ports:
       - "5173:5173"
     volumes:
@@ -9,3 +11,15 @@ services:
     environment:
       - HOST=0.0.0.0
     command: pnpm dev
+
+  dominion-api:
+    build:
+      context: ./dominion-api
+      dockerfile: Containerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./dominion-api:/app:z
+    environment:
+      - PORT=3000
+    command: air -c .air.toml

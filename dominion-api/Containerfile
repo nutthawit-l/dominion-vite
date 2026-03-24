@@ -1,0 +1,40 @@
+FROM registry.opensuse.org/opensuse/tumbleweed:20260315
+
+WORKDIR /app
+
+# Install essential tools
+RUN zypper --non-interactive install --no-recommends \
+    git \
+    curl \
+    bash \
+    tar \
+    gzip \
+    which \
+    wget \
+    && zypper clean --all
+
+# Install Go following official documentation (go1.26.1)
+RUN curl -OL https://go.dev/dl/go1.26.1.linux-amd64.tar.gz && \
+    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.26.1.linux-amd64.tar.gz && \
+    rm go1.26.1.linux-amd64.tar.gz
+
+# Set Go environment paths
+ENV PATH=$PATH:/usr/local/go/bin:/root/go/bin
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the rest of the application
+COPY . .
+
+# Install air for hot-reloading
+RUN go install github.com/air-verse/air@latest
+
+# Expose port
+EXPOSE 3000
+
+# Start air
+CMD ["air", "-c", ".air.toml"]

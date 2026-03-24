@@ -45,3 +45,6 @@ compose-up:
 compose-down:
 	podman compose down
 
+compose-up-build:
+	podman compose up --build
+

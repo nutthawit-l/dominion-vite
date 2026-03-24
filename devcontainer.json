@@ -1,0 +1,4 @@
+{
+    "runArgs": ["--userns=keep-id"],
+    "containerUser": "root"
+}
