@@ -1,21 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import { KINGDOM_CARDS, BASIC_CARDS } from './lib/Card'
 import type { Card } from './lib/Card'
 
+// Helper to map backend card to frontend card (adds Image)
+const mapCardImg = (backendCard: any): Card & { id: string } => {
+  const template = [...BASIC_CARDS, ...KINGDOM_CARDS].find(c => c.name === backendCard.name);
+  return { ...backendCard, img: template?.img };
+};
+
 function App() {
-  const [hand, setHand] = useState<(Card & { id: string })[]>([
-    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '1' },
-    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '2' },
-    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '3' },
-    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '4' },
-    { ...BASIC_CARDS.find(c => c.name === 'Copper')!, id: '5' },
-    { ...BASIC_CARDS.find(c => c.name === 'Estate')!, id: '6' },
-    { ...BASIC_CARDS.find(c => c.name === 'Estate')!, id: '7' },
-  ]);
+  const [hand, setHand] = useState<(Card & { id: string })[]>([]);
   const [played, setPlayed] = useState<(Card & { id: string })[]>([]);
+  const [logs, setLogs] = useState<string[]>([]);
   const [isOver, setIsOver] = useState(false);
   const [showKingdomModal, setShowKingdomModal] = useState(false);
+
+  const fetchGameState = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/v1/game/status');
+      const data = await res.json();
+      if (data.deckManager) {
+        setHand(data.deckManager.hand.map(mapCardImg));
+        setPlayed(data.deckManager.discardPile.map(mapCardImg));
+      }
+      if (data.logs) {
+        setLogs(data.logs);
+      }
+    } catch (err) {
+      console.error("Failed to fetch game state:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchGameState();
+  }, []);
 
   const handleDragStart = (e: React.DragEvent, cardId: string) => {
     e.dataTransfer.setData("text", cardId);
@@ -23,11 +42,19 @@ function App() {
   };
 
   // Handles moving a card from the hand to the playground by its ID.
-  const playCard = (cardId: string) => {
-    const cardToPlay = hand.find(c => c.id === cardId);
-    if (cardToPlay) {
-      setHand(prevHand => prevHand.filter(c => c.id !== cardId));
-      setPlayed(prevPlayed => [...prevPlayed, cardToPlay]);
+  const playCard = async (cardId: string) => {
+    try {
+      await fetch('http://localhost:3000/api/v1/game/play', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cardId })
+      });
+      // Refresh state after playing
+      fetchGameState();
+    } catch (err) {
+      console.error("Failed to play card:", err);
     }
   };
 
@@ -70,8 +97,18 @@ function App() {
           ))}
         </div>
 
-        {/* Playground area */}
-        <div className="[grid-area:1/25/13/33] bg-fuchsia-400 border-l border-b border-black/20 flex items-center justify-center text-white z-10 font-black">Game Logs</div>
+        {/* Playground area / Game Logs */}
+        <div className="[grid-area:1/25/13/33] bg-fuchsia-400 border-l border-b border-black/20 flex flex-col items-start justify-start overflow-y-auto p-4 text-white z-10 shadow-inner">
+          <div className="font-black text-[16px] mb-3 sticky top-0 bg-fuchsia-400/90 w-full py-1 border-b border-white/20">GAME LOGS</div>
+          <div className="flex flex-col gap-1 w-full text-[12px] font-bold tracking-normal uppercase">
+            {logs.map((log, i) => (
+              <div key={i} className="bg-black/20 rounded-sm px-2 py-1.5 animate-in fade-in slide-in-from-left-2 duration-300 shadow-sm border border-black/10">
+                <span className="text-white/60 mr-2 text-[10px]">[{i + 1}]</span>
+                {log}
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div
           className={`[grid-area:13/1/18/33] border-y border-black/20 flex flex-wrap items-center justify-center p-4 gap-2 text-white transition-all duration-200 ${isOver ? 'bg-emerald-500 scale-[1.01] z-20 shadow-inner' : 'bg-emerald-600'}`}
