@@ -1,4 +1,8 @@
 {
-    "runArgs": ["--userns=keep-id"],
-    "containerUser": "root"
+    // "runArgs": ["--userns=keep-id"],
+    "containerUser": "root",
+    "name": "dominion-api",
+    "dockerComposeFile": "compose.yaml",
+    "service": "dominion-api",
+    "workspaceFolder": "/workspace/dominion-api"
 }
