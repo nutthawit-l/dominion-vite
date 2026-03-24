@@ -20,6 +20,9 @@ builder:
 enter:
 	distrobox enter vite-builder
 
+enter-v:
+	distrobox enter vite-builder -v
+
 build:
 	podman build -t $(IMAGE_NAME) .
 
