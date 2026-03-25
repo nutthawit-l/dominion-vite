@@ -14,6 +14,7 @@ function App() {
   const [played, setPlayed] = useState<(Card & { id: string })[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [isOver, setIsOver] = useState(false);
+  const [isOverHand, setIsOverHand] = useState(false);
   const [showKingdomModal, setShowKingdomModal] = useState(false);
 
   const fetchGameState = async () => {
@@ -41,6 +42,11 @@ function App() {
     e.dataTransfer.effectAllowed = "move";
   };
 
+  const handleDragStartFromPlayground = (e: React.DragEvent, cardId: string) => {
+    e.dataTransfer.setData("pg-card", cardId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
   // Handles moving a card from the hand to the playground by its ID.
   const playCard = async (cardId: string) => {
     try {
@@ -57,6 +63,36 @@ function App() {
       console.error("Failed to play card:", err);
     }
   };
+
+  const returnCard = async (cardId: string) => {
+    try {
+      await fetch('http://localhost:3000/api/v1/game/return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardId })
+      });
+      fetchGameState();
+    } catch (err) {
+      console.error("Failed to return card:", err);
+    }
+  };
+
+  const handleDropOnHand = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOverHand(false);
+    const cardId = e.dataTransfer.getData("pg-card");
+    if (cardId) returnCard(cardId);
+  };
+
+  const handleDragOverHand = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("pg-card")) {
+      e.preventDefault();
+      setIsOverHand(true);
+      e.dataTransfer.dropEffect = "move";
+    }
+  };
+
+  const handleDragLeaveHand = () => setIsOverHand(false);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -97,7 +133,7 @@ function App() {
           ))}
         </div>
 
-        {/* Game Logs */}
+        {/* Logs area */}
         <div className="[grid-area:1/25/13/33] bg-fuchsia-400 border-l border-b border-black/20 flex flex-col items-start justify-start overflow-y-auto p-4 text-white z-10 shadow-inner">
           <div className="font-black text-[16px] mb-3 sticky top-0 bg-fuchsia-400/90 w-full py-1 border-b border-white/20">GAME LOGS</div>
           <div className="flex flex-col gap-1 w-full text-[12px] font-bold tracking-normal uppercase">
@@ -132,7 +168,14 @@ function App() {
                 }
                 return acc;
               }, [] as (Card & { id: string, quantity: number })[]).map((card) => (
-                <DisplayCard key={card.name} {...card} count={card.quantity} className="h-full shadow-lg" />
+                <div
+                  key={card.name}
+                  draggable="true"
+                  onDragStart={(e) => handleDragStartFromPlayground(e, card.id)}
+                  className="h-full cursor-grab active:cursor-grabbing"
+                >
+                  <DisplayCard {...card} count={card.quantity} className="h-full shadow-lg" />
+                </div>
               ))}
             </div>
           )}
@@ -147,7 +190,12 @@ function App() {
 
         {/* Player */}
         <div className="[grid-area:23/1/25/3] bg-blue-400 flex items-center justify-center text-white">Deck</div>
-        <div className="[grid-area:18/6/25/28] bg-blue-700/5 flex items-end justify-center relative overflow-visible group/hand">
+        <div
+          className={`[grid-area:18/6/25/28] flex items-end justify-center relative overflow-visible group/hand transition-all duration-200 ${isOverHand ? 'bg-blue-400/30 ring-2 ring-blue-400 ring-inset' : 'bg-blue-700/5'}`}
+          onDragOver={handleDragOverHand}
+          onDragLeave={handleDragLeaveHand}
+          onDrop={handleDropOnHand}
+        >
           <div className="flex justify-center items-end relative w-full h-50 -mb-5">
             {hand.map((card, i) => {
               const total = hand.length;

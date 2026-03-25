@@ -63,6 +63,29 @@ func main() {
 		return c.JSON(gameState)
 	})
 
+	app.Post("/api/v1/game/return", func(c fiber.Ctx) error {
+		req := new(PlayCardRequest)
+		if err := c.Bind().JSON(req); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "invalid request body"})
+		}
+
+		var returnedCardName string
+		for _, card := range gameState.Deck.Playground {
+			if card.ID == req.CardID {
+				returnedCardName = card.Name
+				break
+			}
+		}
+
+		success := gameState.Deck.ReturnToHand(req.CardID)
+		if !success {
+			return c.Status(400).JSON(fiber.Map{"error": "card not found in playground"})
+		}
+
+		gameState.Log("Returned " + returnedCardName + " to hand.")
+		return c.JSON(gameState)
+	})
+
 	app.Post("/api/v1/game/draw", func(c fiber.Ctx) error {
 		gameState.Deck.Draw(1)
 		gameState.Log("Drew a card.")

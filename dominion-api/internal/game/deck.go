@@ -83,6 +83,18 @@ func (dm *DeckManager) PlayFromHand(cardID string) bool {
 	return false
 }
 
+// ReturnToHand removes a card from the Playground by ID and places it back in the hand.
+func (dm *DeckManager) ReturnToHand(cardID string) bool {
+	for i, card := range dm.Playground {
+		if card.ID == cardID {
+			dm.Playground = append(dm.Playground[:i], dm.Playground[i+1:]...)
+			dm.Hand = append(dm.Hand, card)
+			return true
+		}
+	}
+	return false
+}
+
 // DiscardFromHand removes a card from the hand by ID and places it in the discard pile.
 func (dm *DeckManager) DiscardFromHand(cardID string) bool {
 	for i, card := range dm.Hand {
