@@ -37,14 +37,32 @@ function App() {
     fetchGameState();
   }, []);
 
-  const handleDragStart = (e: React.DragEvent, cardId: string) => {
+  // Hand to Playground
+  // ----------------------------------------------------------------------
+
+  const handleDragStartFromHand = (e: React.DragEvent, cardId: string) => {
     e.dataTransfer.setData("text", cardId);
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragStartFromPlayground = (e: React.DragEvent, cardId: string) => {
-    e.dataTransfer.setData("pg-card", cardId);
-    e.dataTransfer.effectAllowed = "move";
+  const handleDropOnPlayground = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(false);
+    const cardId = e.dataTransfer.getData("text");
+
+    if (cardId) {
+      playCard(cardId);
+    }
+  };
+
+  const handleDragOverPlayground = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(true);
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragLeavePlayground = () => {
+    setIsOver(false);
   };
 
   // Handles moving a card from the hand to the playground by its ID.
@@ -64,17 +82,12 @@ function App() {
     }
   };
 
-  const returnCard = async (cardId: string) => {
-    try {
-      await fetch('http://localhost:3000/api/v1/game/return', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cardId })
-      });
-      fetchGameState();
-    } catch (err) {
-      console.error("Failed to return card:", err);
-    }
+  // Playground to Hand
+  // ----------------------------------------------------------------------
+
+  const handleDragStartFromPlayground = (e: React.DragEvent, cardId: string) => {
+    e.dataTransfer.setData("pg-card", cardId);
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDropOnHand = (e: React.DragEvent) => {
@@ -94,25 +107,18 @@ function App() {
 
   const handleDragLeaveHand = () => setIsOverHand(false);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsOver(false);
-    const cardId = e.dataTransfer.getData("text");
-
-    if (cardId) {
-      playCard(cardId);
+  // Handles return a card from the playground to the hand by its ID.
+  const returnCard = async (cardId: string) => {
+    try {
+      await fetch('http://localhost:3000/api/v1/game/return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardId })
+      });
+      fetchGameState();
+    } catch (err) {
+      console.error("Failed to return card:", err);
     }
-  };
-
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsOver(true);
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDragLeave = () => {
-    setIsOver(false);
   };
 
   return (
@@ -149,9 +155,9 @@ function App() {
         {/* Playground area */}
         <div
           className={`[grid-area:13/1/18/33] border-y border-black/20 flex flex-wrap items-center justify-center p-4 gap-2 text-white transition-all duration-200 ${isOver ? 'bg-emerald-500 scale-[1.01] z-20 shadow-inner' : 'bg-emerald-600'}`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
+          onDragOver={handleDragOverPlayground}
+          onDragLeave={handleDragLeavePlayground}
+          onDrop={handleDropOnPlayground}
         >
           {played.length === 0 ? (
             <span className={`transition-opacity duration-200 font-black ${isOver ? 'opacity-100 text-3xl' : 'opacity-40 text-2xl'}`}>
@@ -213,7 +219,7 @@ function App() {
                     '--spread': '0px'
                   }}
                   draggable="true"
-                  onDragStart={(e) => handleDragStart(e, card.id)}
+                  onDragStart={(e) => handleDragStartFromHand(e, card.id)}
                 >
                   <div className="transition-all duration-300 ease-out hover:-translate-y-24 hover:scale-125 hover:rotate-0 hover:z-100 group-hover/hand:[--spread:calc(var(--index)*15px)] active:opacity-40 cursor-pointer"
                     style={{ transform: `rotate(${index * 6}deg)` }}
