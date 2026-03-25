@@ -1,6 +1,7 @@
 {
+    "name": "vite-builder",
     "containerUser": "tie",
     "remoteUser": "tie",
-    "runArgs": ["--userns=keep-id"],
+    "runArgs": ["--userns=keep-id:uid=1000,gid=1000"],
     "workspaceFolder": "/home/tie/dominion"
 }
