@@ -6,6 +6,7 @@ import (
 	"dominion-api/internal/room"
 	"strings"
 
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 )
@@ -107,6 +108,46 @@ func main() {
 		return c.JSON(r)
 	})
 
+	// WebSocket endpoint — used by the waiting player to receive state updates
+	app.Get("/api/v1/rooms/:code/ws", websocket.New(func(c *websocket.Conn) {
+		token := c.Query("token")
+		if auth.GetPlayerByToken(token) == nil {
+			return
+		}
+		r := room.Get(c.Params("code"))
+		if r == nil {
+			return
+		}
+
+		ch := r.Subscribe()
+		defer r.Unsubscribe(ch)
+
+		// Read goroutine: detects client disconnect
+		done := make(chan struct{})
+		go func() {
+			for {
+				if _, _, err := c.ReadMessage(); err != nil {
+					close(done)
+					return
+				}
+			}
+		}()
+
+		for {
+			select {
+			case <-done:
+				return
+			case msg, ok := <-ch:
+				if !ok {
+					return
+				}
+				if err := c.WriteMessage(websocket.TextMessage, msg); err != nil {
+					return
+				}
+			}
+		}
+	}))
+
 	// Room Game Routes
 	app.Post("/api/v1/rooms/:code/play", func(c fiber.Ctx) error {
 		player := getPlayer(c)
@@ -132,6 +173,7 @@ func main() {
 			return c.Status(400).JSON(fiber.Map{"error": "card not found in hand"})
 		}
 		r.State.Log(player.Name + " played " + cardName + ".")
+		go r.Broadcast()
 		return c.JSON(r)
 	})
 
@@ -159,6 +201,7 @@ func main() {
 			return c.Status(400).JSON(fiber.Map{"error": "card not found in playground"})
 		}
 		r.State.Log(player.Name + " returned " + cardName + " to hand.")
+		go r.Broadcast()
 		return c.JSON(r)
 	})
 
@@ -173,6 +216,7 @@ func main() {
 		}
 		r.State.Deck.Draw(1)
 		r.State.Log(player.Name + " drew a card.")
+		go r.Broadcast()
 		return c.JSON(r)
 	})
 
@@ -185,8 +229,14 @@ func main() {
 		if r == nil {
 			return c.Status(404).JSON(fiber.Map{"error": "room not found"})
 		}
+		prevPhase := r.State.Phase
 		r.State.NextPhase()
 		r.State.Log(player.Name + " advanced the phase.")
+		// CLEANUP → ACTION means the turn ended — swap to the other player
+		if prevPhase == game.CleanupPhase {
+			r.SwapTurn()
+		}
+		go r.Broadcast()
 		return c.JSON(r)
 	})
 
@@ -203,6 +253,7 @@ func main() {
 			r.State.Coins++
 			r.State.Log(player.Name + " gained 1 Coin.")
 		}
+		go r.Broadcast()
 		return c.JSON(r)
 	})
 

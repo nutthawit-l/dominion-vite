@@ -20,6 +20,7 @@ type Player struct {
 	ChosenAvatar string `json:"chosenAvatar"`
 }
 
+// Google ID token's payload (https://developers.google.com/identity/openid-connect/openid-connect#an-id-tokens-payload)
 type GoogleTokenInfo struct {
 	Sub     string `json:"sub"`
 	Email   string `json:"email"`

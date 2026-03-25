@@ -26,10 +26,11 @@ function App() {
 }
 
 function GameBoard() {
-  const { sessionToken, room, leaveRoom } = useAuth()
+  const { player, sessionToken, room, leaveRoom } = useAuth()
   const [hand, setHand] = useState<(Card & { id: string })[]>([])
   const [played, setPlayed] = useState<(Card & { id: string })[]>([])
   const [logs, setLogs] = useState<string[]>([])
+  const [currentPlayerID, setCurrentPlayerID] = useState<string | null>(null)
   const [isOver, setIsOver] = useState(false)
   const [isOverHand, setIsOverHand] = useState(false)
   const [showKingdomModal, setShowKingdomModal] = useState(false)
@@ -37,33 +38,48 @@ function GameBoard() {
   const [roomPlayer1, setRoomPlayer1] = useState<PlayerInfo | null>(room?.player1 ?? null)
   const [roomPlayer2, setRoomPlayer2] = useState<PlayerInfo | null>(room?.player2 ?? null)
 
+  const isMyTurn = currentPlayerID === player?.id
+
   const authHeaders = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${sessionToken}`,
   }
+
+  const applyRoomData = useCallback((data: any) => {
+    if (data.state?.deckManager) {
+      setHand(data.state.deckManager.hand.map(mapCardImg))
+      setPlayed(data.state.deckManager.playGround.map(mapCardImg))
+    }
+    if (data.state?.logs) setLogs(data.state.logs)
+    if (data.player1) setRoomPlayer1(data.player1)
+    if (data.player2 !== undefined) setRoomPlayer2(data.player2)
+    if (data.currentPlayerID) setCurrentPlayerID(data.currentPlayerID)
+  }, [])
 
   const fetchGameState = useCallback(async () => {
     if (!room?.code) return
     try {
       const res = await fetch(`${API}/rooms/${room.code}`, { headers: authHeaders })
       const data = await res.json()
-      if (data.state?.deckManager) {
-        setHand(data.state.deckManager.hand.map(mapCardImg))
-        setPlayed(data.state.deckManager.playGround.map(mapCardImg))
-      }
-      if (data.state?.logs) setLogs(data.state.logs)
-      if (data.player1) setRoomPlayer1(data.player1)
-      if (data.player2 !== undefined) setRoomPlayer2(data.player2)
+      applyRoomData(data)
     } catch (err) {
       console.error('Failed to fetch game state:', err)
     }
   }, [room?.code, sessionToken])
 
+  // Initial fetch on mount
   useEffect(() => {
     fetchGameState()
-    const interval = setInterval(fetchGameState, 2000)
-    return () => clearInterval(interval)
   }, [fetchGameState])
+
+  // WebSocket — only connect when waiting for opponent's turn
+  useEffect(() => {
+    if (isMyTurn || !room?.code || !sessionToken) return
+    const ws = new WebSocket(`ws://localhost:3000/api/v1/rooms/${room.code}/ws?token=${sessionToken}`)
+    ws.onmessage = (e) => applyRoomData(JSON.parse(e.data))
+    ws.onerror = (e) => console.error('WS error:', e)
+    return () => ws.close()
+  }, [isMyTurn, room?.code, sessionToken])
 
   // Hand to Playground
   const handleDragStartFromHand = (e: React.DragEvent, cardId: string) => {
