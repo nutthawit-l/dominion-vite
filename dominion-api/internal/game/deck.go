@@ -10,6 +10,7 @@ type DeckManager struct {
 	Deck        []Card `json:"deck"`
 	Hand        []Card `json:"hand"`
 	DiscardPile []Card `json:"discardPile"`
+	Playground  []Card `json:"playGround"`
 	rng         *rand.Rand
 }
 
@@ -66,6 +67,20 @@ func (dm *DeckManager) Draw(count int) []Card {
 
 	dm.Hand = append(dm.Hand, drawnCards...)
 	return drawnCards
+}
+
+// PlayFromHand removes a card from the hand by ID and places it in the Playground.
+func (dm *DeckManager) PlayFromHand(cardID string) bool {
+	for i, card := range dm.Hand {
+		if card.ID == cardID {
+			// Remove from hand
+			dm.Hand = append(dm.Hand[:i], dm.Hand[i+1:]...)
+			// Add to Playground
+			dm.Playground = append(dm.Playground, card)
+			return true
+		}
+	}
+	return false
 }
 
 // DiscardFromHand removes a card from the hand by ID and places it in the discard pile.

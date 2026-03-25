@@ -22,7 +22,7 @@ function App() {
       const data = await res.json();
       if (data.deckManager) {
         setHand(data.deckManager.hand.map(mapCardImg));
-        setPlayed(data.deckManager.discardPile.map(mapCardImg));
+        setPlayed(data.deckManager.playGround.map(mapCardImg));
       }
       if (data.logs) {
         setLogs(data.logs);
@@ -97,7 +97,7 @@ function App() {
           ))}
         </div>
 
-        {/* Playground area / Game Logs */}
+        {/* Game Logs */}
         <div className="[grid-area:1/25/13/33] bg-fuchsia-400 border-l border-b border-black/20 flex flex-col items-start justify-start overflow-y-auto p-4 text-white z-10 shadow-inner">
           <div className="font-black text-[16px] mb-3 sticky top-0 bg-fuchsia-400/90 w-full py-1 border-b border-white/20">GAME LOGS</div>
           <div className="flex flex-col gap-1 w-full text-[12px] font-bold tracking-normal uppercase">
@@ -110,6 +110,7 @@ function App() {
           </div>
         </div>
 
+        {/* Playground area */}
         <div
           className={`[grid-area:13/1/18/33] border-y border-black/20 flex flex-wrap items-center justify-center p-4 gap-2 text-white transition-all duration-200 ${isOver ? 'bg-emerald-500 scale-[1.01] z-20 shadow-inner' : 'bg-emerald-600'}`}
           onDragOver={handleDragOver}

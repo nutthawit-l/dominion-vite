@@ -2,6 +2,7 @@ package main
 
 import (
 	"dominion-api/internal/game"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 )
@@ -47,7 +48,8 @@ func main() {
 		}
 
 		// Discard it (play it)
-		success := gameState.Deck.DiscardFromHand(req.CardID)
+		// success := gameState.Deck.DiscardFromHand(req.CardID)
+		success := gameState.Deck.PlayFromHand(req.CardID)
 		if !success {
 			return c.Status(400).JSON(fiber.Map{"error": "card not found in hand"})
 		}
@@ -57,7 +59,7 @@ func main() {
 		// Find the actual card object from discard pile so we know what was played
 		// In a real game, playing a card moves it to a "PlayArea" and triggers effects.
 		// For now we just discard it.
-		
+
 		return c.JSON(gameState)
 	})
 
@@ -72,14 +74,14 @@ func main() {
 		return c.JSON(gameState)
 	})
 
-    // Action/Buy increment for testing
-    app.Post("/api/v1/game/add-coin", func(c fiber.Ctx) error {
-        if gameState.Phase == game.ActionPhase || gameState.Phase == game.BuyPhase {
-            gameState.Coins++
+	// Action/Buy increment for testing
+	app.Post("/api/v1/game/add-coin", func(c fiber.Ctx) error {
+		if gameState.Phase == game.ActionPhase || gameState.Phase == game.BuyPhase {
+			gameState.Coins++
 			gameState.Log("Gained 1 Coin.")
-        }
-        return c.JSON(gameState)
-    })
+		}
+		return c.JSON(gameState)
+	})
 
 	app.Listen(":3000")
 }
