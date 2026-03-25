@@ -1,6 +1,6 @@
 {
+    "containerUser": "tie",
+    "remoteUser": "tie",
     "runArgs": ["--userns=keep-id"],
-    "containerUser": "root",
-    "remoteUser": "root",
-    "workspaceFolder": "/app"
+    "workspaceFolder": "/home/tie/dominion"
 }

@@ -29,15 +29,15 @@ services:
       - PORT=3000
     command: air -c .air.toml
 
-  dev:
-    build: .
-    networks:
-      - dominion
-    volumes:
-      - ./dominion-api:/dominion-api:z
-      - ./dominion:/dominion:z
-      - /app/node_modules
-    command: sleep infinity
+  # dev:
+  #   build: .
+  #   networks:
+  #     - dominion
+  #   volumes:
+  #     - ./dominion-api:/dominion-api:z
+  #     - ./dominion:/dominion:z
+  #     - /app/node_modules
+  #   command: sleep infinity
 
 networks:
   dominion:
