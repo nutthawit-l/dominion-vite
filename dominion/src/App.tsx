@@ -100,7 +100,7 @@ function GameBoard() {
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDragLeavePlayground = () => setIsOver(false)
+  const handleDragLeaveHand = () => setIsOverHand(false)
 
   const playCard = async (cardId: string) => {
     try {
@@ -136,7 +136,7 @@ function GameBoard() {
     }
   }
 
-  const handleDragLeaveHand = () => setIsOverHand(false)
+  const handleDragLeavePlayground = () => setIsOver(false)
 
   const returnCard = async (cardId: string) => {
     try {
