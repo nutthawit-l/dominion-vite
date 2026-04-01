@@ -1,2 +1,6 @@
 /.gemini/
+/.claude/
+/.ssh/
 go.tar.gz
+code.rpm
+.bashrc

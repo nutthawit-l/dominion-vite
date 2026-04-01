@@ -15,13 +15,18 @@ help:
 	@echo "  clean    Remove the image"
 
 build:
-	distrobox assemble create --replace --name vite-builder --file distrobox.ini
+	distrobox assemble create
+
+clean:
+	distrobox assemble rm
+
+rebuild: clean build
 
 enter:
-	distrobox enter vite-builder
+	distrobox enter dominion-vite
 
 enter-v:
-	distrobox enter vite-builder -v
+	distrobox enter -v dominion-vite
 
 # Below commands need to run inside distrobox
 
@@ -30,35 +35,3 @@ run-backend:
 
 run-frontend: 
 	cd /home/tie/dominion/dominion && pnpm dev
-
-
-
-
-# build:
-# 	podman build -t $(IMAGE_NAME) .
-
-# run: stop
-# 	podman run -d --name $(CONTAINER_NAME) -p $(PORT):5173 $(IMAGE_NAME)
-# 	@echo "App running at http://localhost:$(PORT)"
-
-# stop:
-# 	-podman stop $(CONTAINER_NAME)
-# 	-podman rm $(CONTAINER_NAME)
-
-# clean: stop
-# 	-podman rmi $(IMAGE_NAME)
-
-rebuild: clean build
-
-logs:
-	podman logs -f $(CONTAINER_NAME)
-
-compose-up:
-	podman compose up
-
-compose-down:
-	podman compose down
-
-compose-up-build:
-	podman compose up --build
-
