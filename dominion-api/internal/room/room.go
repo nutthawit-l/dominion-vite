@@ -49,12 +49,19 @@ func Join(code string, player *auth.Player) (*Room, error) {
 	if !ok {
 		return nil, fmt.Errorf("room not found")
 	}
+
+	// Player1 is already in the room (e.g. reconnecting); return without changes.
 	if r.Player1.ID == player.ID {
 		return r, nil
 	}
+
+	// Room is full if Player2 slot is taken by a different player.
+	// r.Player2 != nil — มี Player2 อยู่แล้ว
+	// r.Player2.ID != player.ID — และ player คนนี้ไม่ใช่ Player2 คนเดิม
 	if r.Player2 != nil && r.Player2.ID != player.ID {
 		return nil, fmt.Errorf("room is full")
 	}
+
 	r.Player2 = player
 	return r, nil
 }

@@ -6,8 +6,9 @@ import (
 	"dominion-api/internal/room"
 	"strings"
 
-	"github.com/gofiber/contrib/websocket"
+	"github.com/fasthttp/websocket"
 	"github.com/gofiber/fiber/v3"
+	"github.com/valyala/fasthttp"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
@@ -109,44 +110,48 @@ func main() {
 	})
 
 	// WebSocket endpoint — used by the waiting player to receive state updates
-	app.Get("/api/v1/rooms/:code/ws", websocket.New(func(c *websocket.Conn) {
+	var upgrader = websocket.FastHTTPUpgrader{
+		CheckOrigin: func(r *fasthttp.RequestCtx) bool { return true },
+	}
+	app.Get("/api/v1/rooms/:code/ws", func(c fiber.Ctx) error {
+		code := c.Params("code")
 		token := c.Query("token")
 		if auth.GetPlayerByToken(token) == nil {
-			return
+			return c.Status(401).SendString("unauthorized")
 		}
-		r := room.Get(c.Params("code"))
+		r := room.Get(code)
 		if r == nil {
-			return
+			return c.Status(404).SendString("room not found")
 		}
+		return upgrader.Upgrade(c.RequestCtx(), func(conn *websocket.Conn) {
+			ch := r.Subscribe()
+			defer r.Unsubscribe(ch)
 
-		ch := r.Subscribe()
-		defer r.Unsubscribe(ch)
+			done := make(chan struct{})
+			go func() {
+				for {
+					if _, _, err := conn.ReadMessage(); err != nil {
+						close(done)
+						return
+					}
+				}
+			}()
 
-		// Read goroutine: detects client disconnect
-		done := make(chan struct{})
-		go func() {
 			for {
-				if _, _, err := c.ReadMessage(); err != nil {
-					close(done)
+				select {
+				case <-done:
 					return
+				case msg, ok := <-ch:
+					if !ok {
+						return
+					}
+					if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+						return
+					}
 				}
 			}
-		}()
-
-		for {
-			select {
-			case <-done:
-				return
-			case msg, ok := <-ch:
-				if !ok {
-					return
-				}
-				if err := c.WriteMessage(websocket.TextMessage, msg); err != nil {
-					return
-				}
-			}
-		}
-	}))
+		})
+	})
 
 	// Room Game Routes
 	app.Post("/api/v1/rooms/:code/play", func(c fiber.Ctx) error {
