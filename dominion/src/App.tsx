@@ -3,8 +3,9 @@ import './App.css'
 import { KINGDOM_CARDS, BASIC_CARDS } from './lib/Card'
 import type { Card } from './lib/Card'
 import { useAuth } from './contexts/AuthContext'
-import LoginPage from './components/LoginPage'
-import RoomLobby from './components/RoomLobby'
+import Login from './components/Login'
+import Lobby from './components/Lobby'
+import WaitingRoom from './components/WaitingRoom'
 import ProfileBadge from './components/ProfileBadge'
 import AvatarPickerModal from './components/AvatarPickerModal'
 import type { PlayerInfo } from './contexts/AuthContext'
@@ -19,8 +20,11 @@ const mapCardImg = (backendCard: any): Card & { id: string } => {
 function App() {
   const { player, sessionToken, room } = useAuth()
 
-  if (!player || !sessionToken) return <LoginPage />
-  if (!room) return <RoomLobby />
+  if (!player || !sessionToken) return <Login />
+  if (!room) return <Lobby />
+  if (room.status !== 'PLAYING') return <WaitingRoom />
+
+  console.log("Enter new room!")
 
   return <GameBoard />
 }
@@ -30,15 +34,12 @@ function GameBoard() {
   const [hand, setHand] = useState<(Card & { id: string })[]>([])
   const [played, setPlayed] = useState<(Card & { id: string })[]>([])
   const [logs, setLogs] = useState<string[]>([])
-  const [currentPlayerID, setCurrentPlayerID] = useState<string | null>(null)
   const [isOver, setIsOver] = useState(false)
   const [isOverHand, setIsOverHand] = useState(false)
   const [showKingdomModal, setShowKingdomModal] = useState(false)
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [roomPlayer1, setRoomPlayer1] = useState<PlayerInfo | null>(room?.player1 ?? null)
   const [roomPlayer2, setRoomPlayer2] = useState<PlayerInfo | null>(room?.player2 ?? null)
-
-  const isMyTurn = currentPlayerID === player?.id
 
   const authHeaders = {
     'Content-Type': 'application/json',
@@ -53,10 +54,11 @@ function GameBoard() {
     if (data.state?.logs) setLogs(data.state.logs)
     if (data.player1) setRoomPlayer1(data.player1)
     if (data.player2 !== undefined) setRoomPlayer2(data.player2)
-    if (data.currentPlayerID) setCurrentPlayerID(data.currentPlayerID)
+
   }, [])
 
   const fetchGameState = useCallback(async () => {
+    console.log("fetchGameState", room?.code)
     if (!room?.code) return
     try {
       const res = await fetch(`${API}/rooms/${room.code}`, { headers: authHeaders })
@@ -72,14 +74,31 @@ function GameBoard() {
     fetchGameState()
   }, [fetchGameState])
 
-  // WebSocket — only connect when waiting for opponent's turn
+  // WebSocket — always connected to receive state updates from the server
   useEffect(() => {
-    if (isMyTurn || !room?.code || !sessionToken) return
+    if (!room?.code || !sessionToken) return
     const ws = new WebSocket(`ws://localhost:3000/api/v1/rooms/${room.code}/ws?token=${sessionToken}`)
-    ws.onmessage = (e) => applyRoomData(JSON.parse(e.data))
+    ws.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data)
+        if (data.kickedPlayerID === player?.id) {
+          alert("You were removed from the game")
+          leaveRoom()
+          return
+        }
+        if (data.status === 'CLOSED') {
+          alert("The Host has left the game")
+          leaveRoom()
+          return
+        }
+        applyRoomData(data)
+      } catch (err) {
+        console.error('WS parse error:', err)
+      }
+    }
     ws.onerror = (e) => console.error('WS error:', e)
     return () => ws.close()
-  }, [isMyTurn, room?.code, sessionToken])
+  }, [room?.code, sessionToken])
 
   // Hand to Playground
   const handleDragStartFromHand = (e: React.DragEvent, cardId: string) => {

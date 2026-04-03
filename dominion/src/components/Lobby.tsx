@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import AvatarPickerModal from './AvatarPickerModal'
 import ProfileBadge from './ProfileBadge'
 
-export default function RoomLobby() {
+export default function Lobby() {
   const { player, createRoom, joinRoom, logout } = useAuth()
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState('')

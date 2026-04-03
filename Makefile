@@ -15,50 +15,26 @@ help:
 	@echo "  clean    Remove the image"
 
 build:
-	distrobox assemble create --replace --name vite-builder --file distrobox.ini
+	distrobox assemble create
 
-enter:
-	distrobox enter vite-builder
-
-enter-v:
-	distrobox enter vite-builder -v
-
-# Below commands need to run inside distrobox
-
-run-backend:
-	cd /home/tie/dominion/dominion-api && $(HOME)/go/bin/air -c .air.toml
-
-run-frontend: 
-	cd /home/tie/dominion/dominion && pnpm dev
-
-
-
-
-# build:
-# 	podman build -t $(IMAGE_NAME) .
-
-# run: stop
-# 	podman run -d --name $(CONTAINER_NAME) -p $(PORT):5173 $(IMAGE_NAME)
-# 	@echo "App running at http://localhost:$(PORT)"
-
-# stop:
-# 	-podman stop $(CONTAINER_NAME)
-# 	-podman rm $(CONTAINER_NAME)
-
-# clean: stop
-# 	-podman rmi $(IMAGE_NAME)
+clean:
+	distrobox assemble rm
 
 rebuild: clean build
 
-logs:
-	podman logs -f $(CONTAINER_NAME)
+enter:
+	distrobox enter dominion-vite
 
-compose-up:
-	podman compose up
+enter-v:
+	distrobox enter -v dominion-vite
 
-compose-down:
-	podman compose down
+# Below commands need to run inside distrobox
 
-compose-up-build:
-	podman compose up --build
+init:
+	bash run-once.sh
 
+run-backend:
+	cd $(HOME)/dominion-api && $(HOME)/go/bin/air -c .air.toml
+
+run-frontend: 
+	cd $(HOME)/dominion && pnpm dev

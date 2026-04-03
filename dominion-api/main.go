@@ -8,8 +8,8 @@ import (
 
 	"github.com/fasthttp/websocket"
 	"github.com/gofiber/fiber/v3"
-	"github.com/valyala/fasthttp"
 	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/valyala/fasthttp"
 )
 
 type PlayCardRequest struct {
@@ -26,6 +26,10 @@ type UpdateAvatarRequest struct {
 
 type JoinRoomRequest struct {
 	Code string `json:"code"`
+}
+
+type KickRequest struct {
+	TargetID string `json:"targetId"`
 }
 
 func getPlayer(c fiber.Ctx) *auth.Player {
@@ -94,6 +98,8 @@ func main() {
 		if err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 		}
+		// Notify everyone that Player 2 joined
+		go r.Broadcast()
 		return c.JSON(r)
 	})
 
@@ -106,6 +112,79 @@ func main() {
 		if r == nil {
 			return c.Status(404).JSON(fiber.Map{"error": "room not found"})
 		}
+		return c.JSON(r)
+	})
+
+	app.Delete("/api/v1/rooms/:code", func(c fiber.Ctx) error {
+		player := getPlayer(c)
+		if player == nil {
+			return c.Status(401).JSON(fiber.Map{"error": "unauthorized"})
+		}
+		r := room.Get(c.Params("code"))
+		if r == nil {
+			return c.Status(404).JSON(fiber.Map{"error": "room not found"})
+		}
+		if r.Player1.ID != player.ID {
+			return c.Status(403).JSON(fiber.Map{"error": "only host can close room"})
+		}
+		r.Close()
+		return c.JSON(fiber.Map{"success": true})
+	})
+
+	app.Post("/api/v1/rooms/:code/leave", func(c fiber.Ctx) error {
+		player := getPlayer(c)
+		if player == nil {
+			return c.Status(401).JSON(fiber.Map{"error": "unauthorized"})
+		}
+		r := room.Get(c.Params("code"))
+		if r == nil {
+			return c.Status(404).JSON(fiber.Map{"error": "room not found"})
+		}
+		r.Leave(player)
+		// We broadcast so others in the room know someone left (or room is destroyed)
+		go r.Broadcast()
+		return c.JSON(fiber.Map{"success": true})
+	})
+
+	app.Post("/api/v1/rooms/:code/kick", func(c fiber.Ctx) error {
+		player := getPlayer(c)
+		if player == nil {
+			return c.Status(401).JSON(fiber.Map{"error": "unauthorized"})
+		}
+		req := new(KickRequest)
+		if err := c.Bind().JSON(req); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "invalid request"})
+		}
+		r := room.Get(c.Params("code"))
+		if r == nil {
+			return c.Status(404).JSON(fiber.Map{"error": "room not found"})
+		}
+		if r.Player1.ID != player.ID {
+			return c.Status(403).JSON(fiber.Map{"error": "only host can kick"})
+		}
+
+		r.Kick(req.TargetID)
+		go r.Broadcast()
+		return c.JSON(fiber.Map{"success": true})
+	})
+
+	app.Post("/api/v1/rooms/:code/start", func(c fiber.Ctx) error {
+		player := getPlayer(c)
+		if player == nil {
+			return c.Status(401).JSON(fiber.Map{"error": "unauthorized"})
+		}
+		r := room.Get(c.Params("code"))
+		if r == nil {
+			return c.Status(404).JSON(fiber.Map{"error": "room not found"})
+		}
+		if r.Player1.ID != player.ID {
+			return c.Status(403).JSON(fiber.Map{"error": "only host can start"})
+		}
+		if r.Player2 == nil {
+			return c.Status(400).JSON(fiber.Map{"error": "need 2 players to start"})
+		}
+		r.StartGame()
+		go r.Broadcast()
 		return c.JSON(r)
 	})
 

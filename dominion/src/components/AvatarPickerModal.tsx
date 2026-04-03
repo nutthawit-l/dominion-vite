@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ALL_AVATAR_OPTIONS } from '../lib/avatars'
+import { ALL_AVATAR_OPTIONS } from '../lib/Avatars'
 import { useAuth } from '../contexts/AuthContext'
 
 interface Props {

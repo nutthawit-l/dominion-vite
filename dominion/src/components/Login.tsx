@@ -1,7 +1,7 @@
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../contexts/AuthContext'
 
-export default function LoginPage() {
+export default function Login() {
   const { login, loading } = useAuth()
 
   return (

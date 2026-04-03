@@ -16,6 +16,8 @@ type Room struct {
 	Player2         *auth.Player      `json:"player2"`
 	State           *game.PlayerState `json:"state"`
 	CurrentPlayerID string            `json:"currentPlayerID"`
+	Status          string            `json:"status"`
+	KickedPlayerID  string            `json:"kickedPlayerID,omitempty"`
 	subscribers     []chan []byte
 	subMu           sync.Mutex
 	mu              sync.RWMutex
@@ -36,6 +38,7 @@ func Create(player *auth.Player) *Room {
 		Player1:         player,
 		State:           game.NewPlayerState(),
 		CurrentPlayerID: player.ID,
+		Status:          "WAITING",
 	}
 	rooms[code] = r
 	return r
@@ -72,6 +75,53 @@ func Get(code string) *Room {
 	return rooms[strings.ToUpper(code)]
 }
 
+// Leave handles a player leaving the room.
+func (r *Room) Leave(player *auth.Player) {
+	roomMu.Lock()
+	defer roomMu.Unlock()
+
+	if r.Player2 != nil && r.Player2.ID == player.ID {
+		r.Player2 = nil
+	} else if r.Player1 != nil && r.Player1.ID == player.ID {
+		// If Host leaves, we can just delete the room as a fallback.
+		delete(rooms, r.Code)
+	}
+}
+
+// Kick removes a player by ID from the room and sets KickedPlayerID.
+func (r *Room) Kick(targetID string) {
+	roomMu.Lock()
+	defer roomMu.Unlock()
+
+	if r.Player2 != nil && r.Player2.ID == targetID {
+		r.Player2 = nil
+		r.KickedPlayerID = targetID
+	}
+}
+
+// Close destroys the room, sets status to closed, and kicks everyone.
+func (r *Room) Close() {
+	roomMu.Lock()
+	delete(rooms, r.Code)
+	roomMu.Unlock()
+
+	r.mu.Lock()
+	r.Status = "CLOSED"
+	r.mu.Unlock()
+
+	data, _ := json.Marshal(r)
+	r.subMu.Lock()
+	defer r.subMu.Unlock()
+	for _, ch := range r.subscribers {
+		select {
+		case ch <- data:
+		default:
+		}
+		close(ch)
+	}
+	r.subscribers = nil
+}
+
 // SwapTurn switches CurrentPlayerID to the other player (called at end of turn).
 func (r *Room) SwapTurn() {
 	if r.Player2 == nil {
@@ -82,6 +132,11 @@ func (r *Room) SwapTurn() {
 	} else {
 		r.CurrentPlayerID = r.Player1.ID
 	}
+}
+
+// StartGame changes the room status to playing.
+func (r *Room) StartGame() {
+	r.Status = "PLAYING"
 }
 
 // Subscribe returns a channel that receives the serialized room state on each Broadcast.

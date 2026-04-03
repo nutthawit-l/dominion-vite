@@ -1,4 +1,4 @@
-import { getAvatarOption } from '../lib/avatars'
+import { getAvatarOption } from '../lib/Avatars'
 import type { PlayerInfo } from '../contexts/AuthContext'
 
 interface Props {

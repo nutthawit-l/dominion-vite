@@ -12,6 +12,8 @@ export interface PlayerInfo {
 
 export interface RoomInfo {
   code: string
+  status: string
+  kickedPlayerID?: string
   player1: PlayerInfo | null
   player2: PlayerInfo | null
 }
@@ -26,8 +28,11 @@ interface AuthContextType {
   updateAvatar: (avatar: string) => Promise<void>
   createRoom: () => Promise<void>
   joinRoom: (code: string) => Promise<void>
+  kickPlayer: (targetId: string) => Promise<void>
+  startGame: () => Promise<void>
   refreshRoom: () => Promise<void>
-  leaveRoom: () => void
+  leaveRoom: () => Promise<void>
+  closeRoom: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -69,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data && !data.error) {
-          const restored: RoomInfo = { code: data.code, player1: data.player1, player2: data.player2 }
+          const restored: RoomInfo = { code: data.code, status: data.status, player1: data.player1, player2: data.player2 }
           setRoom(restored)
           localStorage.setItem('dom_room', JSON.stringify(restored))
         } else {
@@ -127,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await authFetch('/rooms', { method: 'POST' })
     const data = await res.json()
     if (data.error) throw new Error(data.error)
-    const r: RoomInfo = { code: data.code, player1: data.player1, player2: data.player2 }
+    const r: RoomInfo = { code: data.code, status: data.status, kickedPlayerID: data.kickedPlayerID, player1: data.player1, player2: data.player2 }
     setRoom(r)
     localStorage.setItem('dom_room', JSON.stringify(r))
   }, [authFetch])
@@ -139,32 +144,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     const data = await res.json()
     if (data.error) throw new Error(data.error)
-    const r: RoomInfo = { code: data.code, player1: data.player1, player2: data.player2 }
+    const r: RoomInfo = { code: data.code, status: data.status, kickedPlayerID: data.kickedPlayerID, player1: data.player1, player2: data.player2 }
     setRoom(r)
     localStorage.setItem('dom_room', JSON.stringify(r))
   }, [authFetch])
 
-  const refreshRoom = useCallback(async () => {
+  const kickPlayer = useCallback(async (targetId: string) => {
     if (!room?.code) return
-    const res = await authFetch(`/rooms/${room.code}`)
+    const res = await authFetch(`/rooms/${room.code}/kick`, {
+      method: 'POST',
+      body: JSON.stringify({ targetId }),
+    })
     const data = await res.json()
-    if (!data.error) {
-      const r: RoomInfo = { code: data.code, player1: data.player1, player2: data.player2 }
-      setRoom(r)
-      localStorage.setItem('dom_room', JSON.stringify(r))
-    }
+    if (data.error) throw new Error(data.error)
   }, [authFetch, room?.code])
 
-  const leaveRoom = useCallback(() => {
+  const refreshRoom = useCallback(async () => {
+    if (!room?.code) return
+    try {
+      const res = await authFetch(`/rooms/${room.code}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (!data.error) {
+          const r: RoomInfo = { code: data.code, status: data.status, kickedPlayerID: data.kickedPlayerID, player1: data.player1, player2: data.player2 }
+          setRoom(r)
+          localStorage.setItem('dom_room', JSON.stringify(r))
+          return
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh room:', err)
+    }
+    // If not successful or error returned, clear room.
     setRoom(null)
     localStorage.removeItem('dom_room')
-  }, [])
+  }, [authFetch, room?.code])
+
+  const startGame = useCallback(async () => {
+    if (!room?.code) return
+    const res = await authFetch(`/rooms/${room.code}/start`, { method: 'POST' })
+    const data = await res.json()
+    if (data.error) throw new Error(data.error)
+    const r: RoomInfo = { code: data.code, status: data.status, kickedPlayerID: data.kickedPlayerID, player1: data.player1, player2: data.player2 }
+    setRoom(r)
+    localStorage.setItem('dom_room', JSON.stringify(r))
+  }, [authFetch, room?.code])
+
+  const leaveRoom = useCallback(async () => {
+    if (room?.code) {
+      try {
+        await authFetch(`/rooms/${room.code}/leave`, { method: 'POST' })
+      } catch (err) {
+        console.error('Failed to voluntarily leave room on backend:', err)
+      }
+    }
+    setRoom(null)
+    localStorage.removeItem('dom_room')
+  }, [authFetch, room?.code])
+
+  const closeRoom = useCallback(async () => {
+    if (room?.code) {
+      try {
+        await authFetch(`/rooms/${room.code}`, { method: 'DELETE' })
+      } catch (err) {
+        console.error('Failed to close room on backend:', err)
+      }
+    }
+    setRoom(null)
+    localStorage.removeItem('dom_room')
+  }, [authFetch, room?.code])
 
   return (
     <AuthContext.Provider value={{
       player, sessionToken, room, loading,
       login, logout, updateAvatar,
-      createRoom, joinRoom, refreshRoom, leaveRoom,
+      createRoom, joinRoom, kickPlayer, startGame, refreshRoom, leaveRoom, closeRoom,
     }}>
       {children}
     </AuthContext.Provider>
