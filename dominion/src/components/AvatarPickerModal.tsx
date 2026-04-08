@@ -16,6 +16,8 @@ export default function AvatarPickerModal({ onClose }: Props) {
     try {
       await updateAvatar(selected)
       onClose()
+    } catch {
+      // updateAvatar failed; saving state resets via finally, no onClose called
     } finally {
       setSaving(false)
     }
