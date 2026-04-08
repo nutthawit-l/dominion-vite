@@ -36,18 +36,20 @@ async function loginUser(
     // Open log in page on tested site
     await page.goto(`${baseURL}`);
 
+    const page1Promise = page.waitForEvent('popup');
     await page.getByRole('button', { name: 'ลงชื่อเข้าใช้ด้วย Google' }).click();
+    const page1 = await page1Promise;
 
     // @react-oauth/google renders the button inside an iframe from accounts.google.com
     // Wait for that iframe to appear, then click it
-    await page.waitForSelector('iframe[src*="accounts.google.com"]');
+    // await page.waitForSelector('iframe[src*="accounts.google.com"]');
 
     // debug: print all iframe attributes to verify selector
     const iframes = await page.locator('iframe').all();
     for (const iframe of iframes) {
       const src = await iframe.getAttribute('src');
       const title = await iframe.getAttribute('title');
-      console.log(`[debug] iframe src=${src} title=${title}`);await page.goto('http://localhost:5173/');
+      console.log(`[debug] iframe src=${src} title=${title}`);
     }
 
     await page.frameLocator('iframe[src*="accounts.google.com"]')
