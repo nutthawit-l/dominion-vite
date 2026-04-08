@@ -27,6 +27,9 @@ importers:
       '@eslint/js':
         specifier: ^9.39.4
         version: 9.39.4
+      '@playwright/cli':
+        specifier: ^0.1.6
+        version: 0.1.6
       '@playwright/test':
         specifier: ^1.59.1
         version: 1.59.1
@@ -310,6 +313,11 @@ packages:
 
   '@oxc-project/types@0.115.0':
     resolution: {integrity: sha512-4n91DKnebUS4yjUHl2g3/b2T+IUdCfmoZGhmwsovZCDaJSs+QkVAM+0AqqTxHSsHfeiMuueT75cZaZcT/m0pSw==}
+
+  '@playwright/cli@0.1.6':
+    resolution: {integrity: sha512-6iY+826o8lvUK/ZPSRvUFDwQo2nSUa5dl9vOqK80ifPwrts3P3qzzc9X134mpO5xaQjaAkQPKoKJBV+eIWL5QQ==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@playwright/test@1.59.1':
     resolution: {integrity: sha512-PG6q63nQg5c9rIi4/Z5lR5IVF7yU5MqmKaPOe0HSc0O2cX1fPi96sUQu5j7eo4gKCkB2AnNGoWt7y4/Xx3Kcqg==}
@@ -1282,6 +1290,9 @@ packages:
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
 
+  minimist@1.2.8:
+    resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
+
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
@@ -1341,8 +1352,18 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  playwright-core@1.60.0-alpha-1775584683000:
+    resolution: {integrity: sha512-ufL1tdjK+2pyt5Jqft71MJmyixa0GMWd6dlHsQKxImD9XrJrFUvOC4jr4ISSYwgl66E37pBM89LxjGEgSaRcjw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   playwright@1.59.1:
     resolution: {integrity: sha512-C8oWjPR3F81yljW9o5OxcWzfh6avkVwDD2VYdwIGqTkl+OGFISgypqzfu7dOe4QNLL2aqcWBmI3PMtLIK233lw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.60.0-alpha-1775584683000:
+    resolution: {integrity: sha512-LHCXlaF0ccE+Z/ergBQaW6NbX9Iq4vM8v4Bi8HjLhO7ThmiyALYZfc6yr3iDDQ5XOan5LtDMT7W6H+k3zVqt8A==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -1914,6 +1935,11 @@ snapshots:
   '@oxc-project/runtime@0.115.0': {}
 
   '@oxc-project/types@0.115.0': {}
+
+  '@playwright/cli@0.1.6':
+    dependencies:
+      minimist: 1.2.8
+      playwright: 1.60.0-alpha-1775584683000
 
   '@playwright/test@1.59.1':
     dependencies:
@@ -2778,6 +2804,8 @@ snapshots:
     dependencies:
       brace-expansion: 1.1.12
 
+  minimist@1.2.8: {}
+
   ms@2.1.3: {}
 
   nanoid@3.3.11: {}
@@ -2825,9 +2853,17 @@ snapshots:
 
   playwright-core@1.59.1: {}
 
+  playwright-core@1.60.0-alpha-1775584683000: {}
+
   playwright@1.59.1:
     dependencies:
       playwright-core: 1.59.1
+    optionalDependencies:
+      fsevents: 2.3.2
+
+  playwright@1.60.0-alpha-1775584683000:
+    dependencies:
+      playwright-core: 1.60.0-alpha-1775584683000
     optionalDependencies:
       fsevents: 2.3.2
 
