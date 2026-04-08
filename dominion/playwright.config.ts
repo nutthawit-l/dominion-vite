@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.BASE_URL || 'http://localhost:5173/';
+
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -77,3 +79,5 @@ export default defineConfig({
   //   reuseExistingServer: !process.env.CI,
   // },
 });
+
+export { baseURL };
