@@ -25,3 +25,5 @@ chrome.rpm
 code.deb
 /.pnpm-store
 /node_modules
+/test-results
+/setup/
