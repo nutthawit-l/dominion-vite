@@ -19,3 +19,7 @@ code.rpm
 .bashrc
 .bash_history
 chrome.rpm
+.bash_logout
+.profile
+.sudo_as_admin_successful
+code.deb
