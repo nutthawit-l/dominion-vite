@@ -51,5 +51,5 @@ install-frontend:
 	cd $(HOME)/dominion && pnpm install
 
 install-test:
-	cd $(HOME)/dominion && pnpm create playwright
+	cd $(HOME)/dominion && pnpm create playwright && pnpm add playwright playwright-extra puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 

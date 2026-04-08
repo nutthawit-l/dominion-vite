@@ -18,8 +18,8 @@ nvm install v24.14.1
 npm install -g pnpm@latest-10
 
 # Install Golang
-[ ! -f "${HOME}/go.tar.gz" ] && curl -o "${HOME}/go.tar.gz" https://dl.google.com/go/go1.26.1.linux-amd64.tar.gz; sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf "${HOME}/go.tar.gz"
-[ ! -f "${HOME}/.bashrc" ] && echo "export PATH=/usr/local/go/bin:${HOME}/go/bin:${PATH}" > "${HOME}/.bashrc" && source "${HOME}/.bashrc"
+[ ! -f "${HOME}/go.tar.gz" ] && curl -o "${HOME}/go.tar.gz" https://dl.google.com/go/go1.26.1.linux-amd64.tar.gz; sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf "${HOME}/go.tar.gz"; echo "export PATH=/usr/local/go/bin:${HOME}/go/bin:${PATH}" >> "${HOME}/.bashrc" && source "${HOME}/.bashrc"
+source ~/.bashrc
 
 #  Install air for hot-reloading
 [ ! -f "${HOME}/go/bin/air" ] && /usr/local/go/bin/go install github.com/air-verse/air@latest

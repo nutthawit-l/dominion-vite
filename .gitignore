@@ -23,3 +23,5 @@ chrome.rpm
 .profile
 .sudo_as_admin_successful
 code.deb
+/.pnpm-store
+/node_modules
