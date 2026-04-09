@@ -34,3 +34,4 @@ dist-ssr
 /playwright/.cache/
 /playwright/.auth/
 .playwright/auth.json
+.playwright-cli/
