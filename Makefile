@@ -2,17 +2,21 @@ IMAGE_NAME = dominion-vite
 CONTAINER_NAME = dominion-vite
 PORT = 5173
 
-.PHONY: builder enter build run debug stop clean rebuild help logs
+.PHONY: help build clean rebuild enter enter-v init run-backend run-frontend install-backend install-frontend install-test
 
 help:
 	@echo "Usage: make [target]"
-	@echo "  builder  Build the builder container using distrobox"
-	@echo "  enter    Enter the builder container
-	@echo "  build    Build the container image"
-	@echo "  run      Run the container on port $(PORT)"
-	@echo "  logs     Follow container logs"
-	@echo "  stop     Stop and remove the container"
-	@echo "  clean    Remove the image"
+	@echo "  build    			Build the distrobox container"
+	@echo "  clean    			Remove the distrobox container"
+	@echo "  rebuild			Remove and build the distrobox container"
+	@echo "  enter    			Enter the distrobox container"
+	@echo "  enter-v  			Enter the distrobox container with verbose option"
+	@echo "  init     			Setup development environment in distrobox container"
+	@echo "  run-backend		Run dominion-api"
+	@echo "  run-frontend   	Run dominion"
+	@echo "  install-backend	cd $(HOME)/dominion-api && go mod download"
+	@echo "  install-frontend  	cd $(HOME)/dominion && pnpm install"
+	@echo "  install-test		cd $(HOME)/dominion && pnpm create playwright"
 
 build:
 	distrobox assemble create
@@ -23,15 +27,33 @@ clean:
 rebuild: clean build
 
 enter:
-	distrobox enter dominion-vite
+	distrobox enter $(CONTAINER_NAME)
 
 enter-v:
-	distrobox enter -v dominion-vite
+	distrobox enter -v $(CONTAINER_NAME)
 
-# Below commands need to run inside distrobox
+# The following commands must be executed within a Distrobox container
+
+init:
+	bash run-once.sh
 
 run-backend:
-	cd /home/tie/dominion/dominion-api && $(HOME)/go/bin/air -c .air.toml
+	cd $(HOME)/dominion-api && $(HOME)/go/bin/air -c .air.toml
 
-run-frontend: 
-	cd /home/tie/dominion/dominion && pnpm dev
+run-frontend:
+	cd $(HOME)/dominion && pnpm dev
+
+install-backend:
+	cd $(HOME)/dominion-api && go mod download
+
+install-frontend:
+	cd $(HOME)/dominion && pnpm install
+
+install-test:
+	cd $(HOME)/dominion && pnpm create playwright && pnpm add playwright playwright-extra puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+
+test:
+	cd /home/tie/dominion-vite/dominion && PLAYWRIGHT_HTML_OPEN=never npx playwright test --project=chromium-debug $(test_file) -g "$(grep)"
+
+test-debug:
+	cd /home/tie/dominion-vite/dominion && PLAYWRIGHT_HTML_OPEN=never npx playwright test --debug=cli --project=chromium-debug $(test_file) -g "$(grep)"
