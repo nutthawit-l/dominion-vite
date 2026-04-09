@@ -209,3 +209,86 @@ test('Step 3: Sync State', async ({ page }) => {
   await page.getByRole('button', { name: 'Close Room' }).click()
   await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
 })
+
+test('Step 4: Player 1 Kicks Player 2', async ({ page }) => {
+  const ROOM_CODE = 'AB12'
+  let player2Present = true
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let wsRoute: any
+
+  const player1 = {
+    id: 'dc04937ded93052d002346a275ac0110',
+    name: 'suwan suwan',
+    email: 'suwan14797@gmail.com',
+    googleAvatar: 'https://lh3.googleusercontent.com/a/ACg8ocIIQUVrmFmVZncxo-uQCgHAZOIhx8cWhp8-eaUUE7AfPRApMQ=s96-c',
+    chosenAvatar: 'google',
+  }
+  const player2 = {
+    id: 'fake-p2-id',
+    name: 'Player Two',
+    email: 'player2@example.com',
+    googleAvatar: '',
+    chosenAvatar: 'google',
+  }
+
+  // Mock POST /rooms — room created with P2 already present (both players in WaitingRoom)
+  await page.route('**/api/v1/rooms', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: ROOM_CODE, status: 'WAITING', player1, player2 }),
+    })
+  })
+
+  // Capture WS connection — kick route will use it to broadcast the event
+  await page.routeWebSocket(`ws://localhost:3000/api/v1/rooms/${ROOM_CODE}/ws*`, ws => {
+    wsRoute = ws
+  })
+
+  // Mock GET /rooms/AB12 — P2 disappears after kick
+  // Mock DELETE /rooms/AB12 — close room at the end
+  await page.route(`**/api/v1/rooms/${ROOM_CODE}`, async (route) => {
+    if (route.request().method() === 'DELETE') return route.fulfill({ status: 200, body: '{}' })
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: ROOM_CODE,
+        status: 'WAITING',
+        player1,
+        player2: player2Present ? player2 : null,
+      }),
+    })
+  })
+
+  // Mock POST /rooms/kick — fulfill then broadcast kick event via WS
+  // Sequence: POST kick → API removes P2 → WS broadcast → P1 calls refreshRoom() → UI updates
+  await page.route(`**/api/v1/rooms/${ROOM_CODE}/kick`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+    player2Present = false
+    wsRoute?.send(JSON.stringify({ kickedPlayerID: player2.id }))
+  })
+
+  // Open site → P1 (suwan) is already logged in (from auth.json)
+  await page.goto('/')
+  await expect(page.getByText('Create New Room')).toBeVisible()
+
+  // P1 creates room → WaitingRoom shown with both players
+  await page.getByText('Create New Room').click()
+  await expect(page.getByText('Room Code:')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Player Two')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start Game' })).toBeEnabled()
+
+  // P1 clicks the kick (×) button next to P2
+  await page.getByTitle('Kick Player').click()
+
+  // WS broadcasts kickedPlayerID → refreshRoom() → P2 removed, Start Game disabled
+  await expect(page.getByRole('button', { name: 'Start Game' })).toBeDisabled({ timeout: 10000 })
+  await expect(page.getByText('Waiting...')).toBeVisible()
+  await expect(page.getByText('Player Two')).not.toBeVisible()
+
+  // P1 closes room → back to Lobby
+  await page.getByRole('button', { name: 'Close Room' }).click()
+  await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
+})
