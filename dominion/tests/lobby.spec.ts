@@ -581,3 +581,130 @@ test('Step 5b: Host (P1) sees "Waiting for players..." after P2 leaves', async (
   await page.getByRole('button', { name: 'Close Room' }).click()
   await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
 })
+
+test('Step 6: Host (P1) Closes Room', async ({ page }) => {
+  const ROOM_CODE = 'AB12'
+
+  const player1 = {
+    id: 'dc04937ded93052d002346a275ac0110', // suwan is P1 (host)
+    name: 'suwan suwan',
+    email: 'suwan14797@gmail.com',
+    googleAvatar: 'https://lh3.googleusercontent.com/a/ACg8ocIIQUVrmFmVZncxo-uQCgHAZOIhx8cWhp8-eaUUE7AfPRApMQ=s96-c',
+    chosenAvatar: 'google',
+  }
+  const player2 = {
+    id: 'fake-p2-id',
+    name: 'Player Two',
+    email: 'player2@example.com',
+    googleAvatar: '',
+    chosenAvatar: 'google',
+  }
+
+  // Mock POST /rooms — room created with P2 already present
+  await page.route('**/api/v1/rooms', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: ROOM_CODE, status: 'WAITING', player1, player2 }),
+    })
+  })
+
+  // Mock WS — no events needed for P1's own close action
+  await page.routeWebSocket(`ws://localhost:3000/api/v1/rooms/${ROOM_CODE}/ws*`, _ws => {})
+
+  // Mock DELETE /rooms/AB12 — room closed by host
+  // Mock GET /rooms/AB12 — for WaitingRoom refresh calls
+  await page.route(`**/api/v1/rooms/${ROOM_CODE}`, async (route) => {
+    if (route.request().method() === 'DELETE') return route.fulfill({ status: 200, body: '{}' })
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: ROOM_CODE, status: 'WAITING', player1, player2 }),
+    })
+  })
+
+  // Open site → P1 (suwan) is logged in (from auth.json)
+  await page.goto('/')
+  await expect(page.getByText('Create New Room')).toBeVisible()
+
+  // P1 creates room → WaitingRoom with both players, Start Game enabled
+  await page.getByText('Create New Room').click()
+  await expect(page.getByText('Room Code:')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Player Two')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start Game' })).toBeEnabled()
+
+  // P1 clicks "Close Room" → DELETE /rooms/AB12 → room cleared → Lobby shown
+  await page.getByRole('button', { name: 'Close Room' }).click()
+  await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
+})
+
+test('Step 6b: Remaining Player (P2) sees alert and returns to Lobby when host closes room', async ({ page }) => {
+  const ROOM_CODE = 'AB12'
+
+  const player1 = {
+    id: 'fake-host-id',
+    name: 'Player One',
+    email: 'player1@example.com',
+    googleAvatar: '',
+    chosenAvatar: 'google',
+  }
+  const player2 = {
+    id: 'dc04937ded93052d002346a275ac0110', // suwan is P2 (non-host)
+    name: 'suwan suwan',
+    email: 'suwan14797@gmail.com',
+    googleAvatar: 'https://lh3.googleusercontent.com/a/ACg8ocIIQUVrmFmVZncxo-uQCgHAZOIhx8cWhp8-eaUUE7AfPRApMQ=s96-c',
+    chosenAvatar: 'google',
+  }
+
+  // Mock POST /rooms/join — suwan joins as P2 (non-host)
+  await page.route('**/api/v1/rooms/join', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: ROOM_CODE, status: 'WAITING', player1, player2 }),
+    })
+  })
+
+  // Mock GET /rooms/AB12 for WaitingRoom refresh calls
+  await page.route(`**/api/v1/rooms/${ROOM_CODE}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: ROOM_CODE, status: 'WAITING', player1, player2 }),
+    })
+  })
+
+  // Mock POST /rooms/leave — called by leaveRoom() after alert is accepted
+  await page.route(`**/api/v1/rooms/${ROOM_CODE}/leave`, async (route) => {
+    await route.fulfill({ status: 200, body: '{}' })
+  })
+
+  // Promise-controlled WS — test fires "Room Closed" broadcast after asserting P2's initial state
+  let triggerRoomClosed!: () => void
+  const roomClosedSignal = new Promise<void>(resolve => { triggerRoomClosed = resolve })
+  await page.routeWebSocket(`ws://localhost:3000/api/v1/rooms/${ROOM_CODE}/ws*`, ws => {
+    roomClosedSignal.then(() => ws.send(JSON.stringify({ status: 'CLOSED' })))
+  })
+
+  // Open site → suwan (P2) is logged in (from auth.json)
+  await page.goto('/')
+  await expect(page.getByText('Create New Room')).toBeVisible()
+
+  // P2 joins room → WaitingRoom shown as non-host
+  await page.getByPlaceholder('ROOM CODE').fill(ROOM_CODE)
+  await page.getByRole('button', { name: 'Join' }).click()
+  await expect(page.getByText('Room Code:')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Waiting for Host to Start')).toBeVisible()
+
+  // Register alert handler before triggering room close
+  // Sequence: WS { status: 'CLOSED' } → alert("The Host has left") → leaveRoom() → Lobby
+  page.once('dialog', dialog => {
+    expect(dialog.message()).toBe('The Host has left')
+    dialog.accept()
+  })
+  triggerRoomClosed()
+
+  // After alert dismissed, leaveRoom() clears room state → Lobby shown
+  await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
+})
