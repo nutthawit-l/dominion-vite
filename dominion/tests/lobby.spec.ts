@@ -19,8 +19,8 @@ test('Step 1: Player 1 Creates Room', async ({ page }) => {
   await expect(page.getByText('VS')).toBeVisible()
   await expect(page.getByText('Waiting...')).toBeVisible()
 
-  // Start Game disabled until Player 2 joins
-  await expect(page.getByRole('button', { name: 'Start Game' })).toBeDisabled()
+  // No P2 yet — button shows "Waiting for players..." and is disabled
+  await expect(page.getByRole('button', { name: 'Waiting for players...' })).toBeDisabled()
 
   // Host closes room → back to Lobby
   await page.getByRole('button', { name: 'Close Room' }).click()
@@ -190,8 +190,8 @@ test('Step 3: Sync State', async ({ page }) => {
   await expect(page.getByText('Room Code:')).toBeVisible({ timeout: 10000 })
   await expect(page.getByText(ROOM_CODE)).toBeVisible()
 
-  // P1 sees Start Game disabled and P2 slot empty
-  await expect(page.getByRole('button', { name: 'Start Game' })).toBeDisabled()
+  // No P2 yet — button shows "Waiting for players..." and is disabled
+  await expect(page.getByRole('button', { name: 'Waiting for players...' })).toBeDisabled()
   await expect(page.getByText('Waiting...')).toBeVisible()
 
   // Simulate API broadcasting "Player 2 Joined" via WebSocket
@@ -283,8 +283,8 @@ test('Step 4: Player 1 Kicks Player 2', async ({ page }) => {
   // P1 clicks the kick (×) button next to P2
   await page.getByTitle('Kick Player').click()
 
-  // WS broadcasts kickedPlayerID → refreshRoom() → P2 removed, Start Game disabled
-  await expect(page.getByRole('button', { name: 'Start Game' })).toBeDisabled({ timeout: 10000 })
+  // WS broadcasts kickedPlayerID → refreshRoom() → P2 removed, button shows "Waiting for players..."
+  await expect(page.getByRole('button', { name: 'Waiting for players...' })).toBeDisabled({ timeout: 10000 })
   await expect(page.getByText('Waiting...')).toBeVisible()
   await expect(page.getByText('Player Two')).not.toBeVisible()
 
@@ -361,5 +361,84 @@ test('Step 4b: Kicked Player (P2) sees alert and returns to Lobby', async ({ pag
   triggerKick()
 
   // After alert is dismissed, leaveRoom() clears room state → Lobby shown
+  await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
+})
+
+test('Step 4c: Host (P1) sees Start Game disabled after P2 is kicked', async ({ page }) => {
+  const ROOM_CODE = 'AB12'
+  let player2Present = true
+
+  const player1 = {
+    id: 'dc04937ded93052d002346a275ac0110', // suwan is P1 (host)
+    name: 'suwan suwan',
+    email: 'suwan14797@gmail.com',
+    googleAvatar: 'https://lh3.googleusercontent.com/a/ACg8ocIIQUVrmFmVZncxo-uQCgHAZOIhx8cWhp8-eaUUE7AfPRApMQ=s96-c',
+    chosenAvatar: 'google',
+  }
+  const player2 = {
+    id: 'fake-p2-id',
+    name: 'Player Two',
+    email: 'player2@example.com',
+    googleAvatar: '',
+    chosenAvatar: 'google',
+  }
+
+  // Mock POST /rooms — room created with P2 already present
+  await page.route('**/api/v1/rooms', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: ROOM_CODE, status: 'WAITING', player1, player2 }),
+    })
+  })
+
+  // Promise-controlled WS — test fires the "P2 kicked" broadcast after asserting initial state
+  let triggerP2Left!: () => void
+  const p2LeftSignal = new Promise<void>(resolve => { triggerP2Left = resolve })
+  await page.routeWebSocket(`ws://localhost:3000/api/v1/rooms/${ROOM_CODE}/ws*`, ws => {
+    p2LeftSignal.then(() => {
+      player2Present = false
+      ws.send(JSON.stringify({ kickedPlayerID: player2.id }))
+    })
+  })
+
+  // Mock GET /rooms/AB12 — P2 disappears after WS broadcast
+  // Mock DELETE /rooms/AB12 — close room at the end
+  await page.route(`**/api/v1/rooms/${ROOM_CODE}`, async (route) => {
+    if (route.request().method() === 'DELETE') return route.fulfill({ status: 200, body: '{}' })
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: ROOM_CODE,
+        status: 'WAITING',
+        player1,
+        player2: player2Present ? player2 : null,
+      }),
+    })
+  })
+
+  // Open site → P1 (suwan) is already logged in (from auth.json)
+  await page.goto('/')
+  await expect(page.getByText('Create New Room')).toBeVisible()
+
+  // P1 creates room → WaitingRoom with both players, Start Game enabled
+  await page.getByText('Create New Room').click()
+  await expect(page.getByText('Room Code:')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Player Two')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start Game' })).toBeEnabled()
+
+  // Simulate API broadcasting "P2 kicked" to P1
+  // Sequence: WS kickedPlayerID !== P1.id → refreshRoom() → GET /rooms/AB12 (no P2) → UI updates
+  triggerP2Left()
+
+  // P2 removed — button shows "Waiting for players..." and is disabled again
+  await expect(page.getByRole('button', { name: 'Waiting for players...' })).toBeDisabled({ timeout: 10000 })
+  await expect(page.getByText('Waiting...')).toBeVisible()
+  await expect(page.getByText('Player Two')).not.toBeVisible()
+
+  // P1 closes room → back to Lobby
+  await page.getByRole('button', { name: 'Close Room' }).click()
   await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
 })
