@@ -121,6 +121,9 @@ test('Step 2: Player 2 Joins Room', async ({ page }) => {
 test('Step 3: Sync State', async ({ page }) => {
   const ROOM_CODE = 'AB12'
   let player2Joined = false
+  let triggerP2Join!: () => void
+  // The test manually fires this after asserting the disabled state
+  const p2JoinSignal = new Promise<void>(resolve => { triggerP2Join = resolve })
 
   // Mock POST /rooms — P1 (suwan) creates a room; no P2 yet
   await page.route('**/api/v1/rooms', async (route) => {
@@ -143,11 +146,13 @@ test('Step 3: Sync State', async ({ page }) => {
     })
   })
 
-  // Mock WebSocket — simulate API broadcasting "Player 2 Joined"
+  // Mock WebSocket — holds until the test manually calls triggerP2Join()
   // Sequence: API->>App (WS broadcast) → App calls refreshRoom() → GET /rooms/AB12 → P1 sees Start Game enabled
   await page.routeWebSocket(`ws://localhost:3000/api/v1/rooms/${ROOM_CODE}/ws*`, ws => {
-    player2Joined = true // next GET /rooms/AB12 returns P2
-    ws.send(JSON.stringify({ status: 'WAITING' }))
+    p2JoinSignal.then(() => {
+      player2Joined = true // next GET /rooms/AB12 returns P2
+      ws.send(JSON.stringify({ status: 'WAITING' }))
+    })
   })
 
   // Mock GET /rooms/AB12 — returns P2 only after WS broadcast sets player2Joined
@@ -189,7 +194,10 @@ test('Step 3: Sync State', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Start Game' })).toBeDisabled()
   await expect(page.getByText('Waiting...')).toBeVisible()
 
-  // WS broadcasts "Player 2 Joined" → refreshRoom() → Start Game enabled, P2 shown
+  // Simulate API broadcasting "Player 2 Joined" via WebSocket
+  triggerP2Join()
+
+  // WS broadcast → refreshRoom() → Start Game enabled, P2 shown
   await expect(page.getByRole('button', { name: 'Start Game' })).toBeEnabled({ timeout: 10000 })
   await expect(page.getByText('Player Two')).toBeVisible()
 
