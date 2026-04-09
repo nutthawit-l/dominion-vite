@@ -28,15 +28,22 @@ sequenceDiagram
         App->>API: POST /room/join (Code: XXXX)
         API-->>App: 200 OK (Joined)
         App->>P2: Show Waiting Page
+
+        Note over App, API: Sync State (2 Players)
+        API->>App: Broadcast (via WebSocket): Player 2 Joined
+        App->>P1: Enable "Start" Button
+        App->>P2: Show "Waiting for Host to Start"
+    end
+
+    rect rgb(159, 220, 251)
+        Note over App, API: [Step 3] Sync State
+        API->>App: Broadcast (via WebSocket): Player 2 Joined
+        App->>P1: Enable "Start" Button
+        App->>P2: Show "Waiting for Host to Start"
     end
     
-    Note over App, API: [Step 3] Sync State (2 Players)
-    API->>App: Broadcast (via WebSocket): Player 2 Joined
-    App->>P1: Enable "Start" Button
-    App->>P2: Show "Waiting for Host to Start"
-
     rect rgb(240, 240, 255)
-        Note over P1, API: [Step 3] Player1 Kicks Player2
+        Note over P1, API: [Step 4] Player1 Kicks Player2
         P1->>App: Click "Kick" icon next to P2
         App->>API: POST /room/kick (Room: XXXX, Target: P2_ID)
         
@@ -57,7 +64,7 @@ sequenceDiagram
     end
 
     rect rgb(255, 245, 200)
-        Note over P2, API: [Step 4] Player 2 Leaves Room
+        Note over P2, API: [Step 5] Player 2 Leaves Room
         P2->>App: Click "Leave Room"
         App->>API: POST /room/leave (Code: XXXX)
         API-->>App: 200 OK (Left)
@@ -70,7 +77,7 @@ sequenceDiagram
     end
 
     rect rgb(255, 240, 240)
-        Note over P1, API: [Step 5] Host (P1) Leaves & Room Cleanup
+        Note over P1, API: [Step 6] Host (P1) Leaves & Room Cleanup
         P1->>App: Click "Close Room"
         App->>API: DELETE /room/XXXX
         

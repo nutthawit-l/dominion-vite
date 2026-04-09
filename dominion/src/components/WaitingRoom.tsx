@@ -105,7 +105,7 @@ export default function WaitingRoom() {
             disabled={loading || !room?.player2}
             className="w-full py-4 bg-emerald-500 text-white font-black uppercase tracking-widest text-sm rounded-sm hover:bg-emerald-400 transition-colors disabled:opacity-30 disabled:hover:bg-emerald-500 shadow-lg"
           >
-            {loading ? 'Starting...' : 'Start Game'}
+            {loading ? 'Starting...' : room?.player2 ? 'Start Game' : 'Waiting for players...'}
           </button>
         ) : (
           <div className="w-full py-4 bg-stone-800 text-stone-400 font-black uppercase tracking-widest text-sm rounded-sm text-center border border-stone-700 animate-pulse border-dashed">
