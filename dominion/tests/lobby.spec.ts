@@ -292,3 +292,74 @@ test('Step 4: Player 1 Kicks Player 2', async ({ page }) => {
   await page.getByRole('button', { name: 'Close Room' }).click()
   await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
 })
+
+test('Step 4b: Kicked Player (P2) sees alert and returns to Lobby', async ({ page }) => {
+  const ROOM_CODE = 'AB12'
+
+  const player1 = {
+    id: 'fake-host-id',
+    name: 'Player One',
+    email: 'player1@example.com',
+    googleAvatar: '',
+    chosenAvatar: 'google',
+  }
+  const player2 = {
+    id: 'dc04937ded93052d002346a275ac0110', // suwan is P2 (non-host)
+    name: 'suwan suwan',
+    email: 'suwan14797@gmail.com',
+    googleAvatar: 'https://lh3.googleusercontent.com/a/ACg8ocIIQUVrmFmVZncxo-uQCgHAZOIhx8cWhp8-eaUUE7AfPRApMQ=s96-c',
+    chosenAvatar: 'google',
+  }
+
+  // Mock POST /rooms/join — suwan joins as P2 (not host)
+  await page.route('**/api/v1/rooms/join', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: ROOM_CODE, status: 'WAITING', player1, player2 }),
+    })
+  })
+
+  // Mock GET /rooms/AB12 for WaitingRoom refresh calls
+  await page.route(`**/api/v1/rooms/${ROOM_CODE}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: ROOM_CODE, status: 'WAITING', player1, player2 }),
+    })
+  })
+
+  // Mock POST /rooms/leave — called by leaveRoom() after kick alert is accepted
+  await page.route(`**/api/v1/rooms/${ROOM_CODE}/leave`, async (route) => {
+    await route.fulfill({ status: 200, body: '{}' })
+  })
+
+  // Promise-controlled WS — test fires kick broadcast after asserting P2's initial state
+  let triggerKick!: () => void
+  const kickSignal = new Promise<void>(resolve => { triggerKick = resolve })
+  await page.routeWebSocket(`ws://localhost:3000/api/v1/rooms/${ROOM_CODE}/ws*`, ws => {
+    kickSignal.then(() => ws.send(JSON.stringify({ kickedPlayerID: player2.id })))
+  })
+
+  // Open site → suwan (P2) is logged in (from auth.json)
+  await page.goto('/')
+  await expect(page.getByText('Create New Room')).toBeVisible()
+
+  // P2 joins room → WaitingRoom shown as non-host
+  await page.getByPlaceholder('ROOM CODE').fill(ROOM_CODE)
+  await page.getByRole('button', { name: 'Join' }).click()
+  await expect(page.getByText('Room Code:')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Waiting for Host to Start')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Leave Room' })).toBeVisible()
+
+  // Register alert handler before triggering kick
+  // Sequence: WS kickedPlayerID === P2.id → alert("You were removed from the room") → leaveRoom()
+  page.once('dialog', dialog => {
+    expect(dialog.message()).toBe('You were removed from the room')
+    dialog.accept()
+  })
+  triggerKick()
+
+  // After alert is dismissed, leaveRoom() clears room state → Lobby shown
+  await expect(page.getByText('Create New Room')).toBeVisible({ timeout: 10000 })
+})
