@@ -53,5 +53,8 @@ install-frontend:
 install-test:
 	cd $(HOME)/dominion && pnpm create playwright && pnpm add playwright playwright-extra puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
+test:
+	cd /home/tie/dominion-vite/dominion && PLAYWRIGHT_HTML_OPEN=never npx playwright test --project=chromium-debug $(test_file) -g "$(grep)"
+
 test-debug:
 	cd /home/tie/dominion-vite/dominion && PLAYWRIGHT_HTML_OPEN=never npx playwright test --debug=cli --project=chromium-debug $(test_file) -g "$(grep)"
