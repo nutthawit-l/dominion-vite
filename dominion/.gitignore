@@ -26,3 +26,12 @@ dist-ssr
 .env
 !.env.example
 .pnpm-store
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+.playwright/auth.json
+.playwright-cli/
